@@ -4,36 +4,37 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Imitar Movimientos</title>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
   *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'Nunito',sans-serif;background:linear-gradient(135deg,#1a0533,#0d1b4b);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px}
-  .header{background:rgba(255,255,255,.97);border-radius:20px;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;width:100%;max-width:800px;margin-bottom:14px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+  body{font-family:'Nunito',sans-serif;background:linear-gradient(135deg,#1a0533,#0d1b4b);min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:12px}
+  .header{background:rgba(255,255,255,.97);border-radius:20px;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;width:100%;max-width:820px;margin-bottom:12px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
   .back-btn{background:#f3f4f6;border:none;border-radius:50px;padding:8px 16px;font-family:'Nunito',sans-serif;font-weight:700;color:#555;cursor:pointer;font-size:.85rem;text-decoration:none}
   .header h2{font-size:1rem;font-weight:900;color:#7c3aed}
-  .puntos{background:linear-gradient(135deg,#c084fc,#9333ea);color:white;border-radius:50px;padding:6px 16px;font-weight:900;font-size:.9rem}
-  .game-area{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;max-width:800px}
-  .camera-card{background:rgba(255,255,255,.97);border-radius:20px;padding:16px;box-shadow:0 8px 30px rgba(0,0,0,.3);position:relative}
-  .camera-label{font-size:.8rem;font-weight:700;color:#666;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .puntos-box{background:linear-gradient(135deg,#c084fc,#9333ea);color:white;border-radius:50px;padding:6px 16px;font-weight:900;font-size:.9rem}
+  .game-area{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:820px}
+  .card{background:rgba(255,255,255,.97);border-radius:20px;padding:16px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+  .cam-label{font-size:.8rem;font-weight:700;color:#666;margin-bottom:8px;display:flex;align-items:center;gap:6px}
   .dot{width:8px;height:8px;background:#22c55e;border-radius:50%;animation:pulse 1s infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
-  video{width:100%;border-radius:12px;display:block;transform:scaleX(-1)}
-  canvas{position:absolute;top:16px;left:16px;width:calc(100% - 32px);border-radius:12px;transform:scaleX(-1)}
-  .instruccion-card{background:rgba(255,255,255,.97);border-radius:20px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,.3);text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px}
-  .movimiento-emoji{font-size:4rem;animation:bounce 1s infinite alternate}
+  .cam-wrap{position:relative;border-radius:12px;overflow:hidden;background:#111}
+  video{width:100%;display:block;transform:scaleX(-1);border-radius:12px}
+  canvas{position:absolute;top:0;left:0;width:100%;height:100%;transform:scaleX(-1)}
+  .instruccion-card{text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:260px}
+  .mov-emoji{font-size:4rem;animation:bounce 1s infinite alternate}
   @keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-10px)}}
-  .movimiento-texto{font-size:1.3rem;font-weight:900;color:#1e1b4b;line-height:1.2}
-  .cuenta-num{font-size:5rem;font-weight:900;color:#7c3aed;line-height:1}
-  .estado{padding:10px 20px;border-radius:50px;font-weight:900;font-size:.9rem;color:white;background:linear-gradient(135deg,#a78bfa,#7c3aed)}
-  .estado.correcto{background:linear-gradient(135deg,#22c55e,#16a34a)}
-  .estado.incorrecto{background:linear-gradient(135deg,#ef4444,#dc2626)}
-  .vidas{font-size:1.3rem}
-  .progreso{width:100%;max-width:800px;background:rgba(255,255,255,.97);border-radius:20px;padding:16px 20px;margin-top:14px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
-  .barra-bg{background:#e5e7eb;border-radius:50px;height:12px;overflow:hidden;margin-top:8px}
+  .mov-texto{font-size:1.2rem;font-weight:900;color:#1e1b4b;line-height:1.25;max-width:200px}
+  .cuenta{font-size:5rem;font-weight:900;color:#7c3aed;line-height:1;min-height:80px;display:flex;align-items:center;justify-content:center}
+  .estado{padding:10px 20px;border-radius:50px;font-weight:900;font-size:.9rem;color:white;background:linear-gradient(135deg,#a78bfa,#7c3aed);transition:background .3s}
+  .estado.ok{background:linear-gradient(135deg,#22c55e,#16a34a)}
+  .estado.mal{background:linear-gradient(135deg,#ef4444,#dc2626)}
+  .vidas{font-size:1.2rem}
+  .progreso-card{width:100%;max-width:820px;background:rgba(255,255,255,.97);border-radius:20px;padding:14px 20px;margin-top:12px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+  .prog-header{display:flex;justify-content:space-between;font-size:.85rem;font-weight:700;color:#555;margin-bottom:8px}
+  .barra-bg{background:#e5e7eb;border-radius:50px;height:12px;overflow:hidden}
   .barra-fill{background:linear-gradient(135deg,#c084fc,#9333ea);height:100%;border-radius:50px;transition:width .5s}
-  .prog-header{display:flex;justify-content:space-between;font-size:.85rem;font-weight:700;color:#555}
+  .hand-detected{position:absolute;top:8px;right:8px;background:#22c55e;color:white;font-size:.7rem;font-weight:900;padding:4px 10px;border-radius:50px;opacity:0;transition:opacity .3s}
+  .hand-detected.show{opacity:1}
 </style>
 </head>
 <body>
@@ -43,164 +44,213 @@
   <h2>🧸 Imitar Movimientos</h2>
   <div style="display:flex;gap:10px;align-items:center">
     <div class="vidas" id="vidas">❤️❤️❤️</div>
-    <div class="puntos">⭐ <span id="puntos">0</span></div>
+    <div class="puntos-box">⭐ <span id="puntos">0</span></div>
   </div>
 </div>
 
 <div class="game-area">
-  <div class="camera-card">
-    <div class="camera-label"><div class="dot"></div> Tu cámara</div>
-    <video id="video" autoplay playsinline></video>
-    <canvas id="canvas"></canvas>
+  <div class="card">
+    <div class="cam-label"><div class="dot"></div> Tu cámara</div>
+    <div class="cam-wrap">
+      <video id="video" autoplay playsinline muted></video>
+      <canvas id="canvas"></canvas>
+      <div class="hand-detected" id="hand-badge">✋ Mano detectada</div>
+    </div>
   </div>
 
-  <div class="instruccion-card">
-    <div class="movimiento-emoji" id="mov-emoji">🤖</div>
-    <div class="movimiento-texto" id="mov-texto">Preparando juego...</div>
-    <div class="cuenta-num" id="cuenta">-</div>
-    <div class="estado" id="estado">🎮 Listo</div>
+  <div class="card instruccion-card">
+    <div class="mov-emoji" id="mov-emoji">🤖</div>
+    <div class="mov-texto" id="mov-texto">Cargando juego...</div>
+    <div class="cuenta" id="cuenta">-</div>
+    <div class="estado" id="estado">🎮 Preparando...</div>
   </div>
 </div>
 
-<div class="progreso">
+<div class="progreso-card">
   <div class="prog-header">
     <span id="prog-texto">Movimiento 0 de 5</span>
-    <span id="estrellas">⭐⭐⭐</span>
+    <span id="prog-estrellas">⭐⭐⭐</span>
   </div>
   <div class="barra-bg"><div class="barra-fill" id="barra" style="width:0%"></div></div>
 </div>
 
 <script>
-const movimientos = [
-  {instruccion:"Levanta la mano bien arriba", emoji:"🙋", deteccion:"mano_arriba"},
-  {instruccion:"Muestra 5 dedos", emoji:"🖐", deteccion:"cinco_dedos"},
-  {instruccion:"Haz un puño cerrado", emoji:"✊", deteccion:"puno"},
-  {instruccion:"Señala con el dedo índice", emoji:"☝️", deteccion:"un_dedo"},
-  {instruccion:"Muestra la palma abierta", emoji:"✋", deteccion:"palma"}
+const MOVIMIENTOS = [
+  {instruccion:"Levanta la mano bien arriba", emoji:"🙋", tipo:"mano_arriba"},
+  {instruccion:"Muestra todos los dedos abiertos", emoji:"🖐", tipo:"palma_abierta"},
+  {instruccion:"Haz un puño cerrado", emoji:"✊", tipo:"puno"},
+  {instruccion:"Señala con un solo dedo hacia arriba", emoji:"☝️", tipo:"un_dedo"},
+  {instruccion:"Muestra dos dedos en V de victoria", emoji:"✌️", tipo:"dos_dedos"}
 ];
 
-let indice = 0, puntos = 0, vidas = 3, esperando = false, contando = false;
+let indice=0, puntos=0, vidas=3, esperando=false, detectadoOk=false, timerDet=null;
 
-// Voz
+// ── VOZ (Web Speech API - funciona en todos los navegadores modernos) ──
 function hablar(texto) {
+  speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(texto);
   u.lang = 'es-ES';
   u.rate = 0.9;
+  u.pitch = 1.1;
+  const voices = speechSynthesis.getVoices();
+  const esp = voices.find(v => v.lang.startsWith('es'));
+  if (esp) u.voice = esp;
   speechSynthesis.speak(u);
 }
+speechSynthesis.onvoiceschanged = () => {};
 
-// Detección de gestos
-function detectarGesto(landmarks) {
-  const dedos = [
-    landmarks[8].y < landmarks[6].y,  // índice
-    landmarks[12].y < landmarks[10].y, // medio
-    landmarks[16].y < landmarks[14].y, // anular
-    landmarks[20].y < landmarks[18].y  // meñique
-  ];
-  const dedosAbiertos = dedos.filter(Boolean).length;
-  const manoArriba = landmarks[0].y > 0.7;
+// ── DETECCIÓN DE GESTOS ──
+function detectarGesto(lm) {
+  // lm = array de 21 puntos {x, y, z}
+  const punta  = [lm[8],  lm[12], lm[16], lm[20]];
+  const media  = [lm[6],  lm[10], lm[14], lm[18]];
+  const abiertos = punta.filter((p,i) => p.y < media[i].y).length;
+  const pulgAbierto = lm[4].x < lm[3].x; // espejo: mano derecha
 
-  const mov = movimientos[indice]?.deteccion;
-  if (mov === 'mano_arriba') return manoArriba;
-  if (mov === 'cinco_dedos') return dedosAbiertos === 4;
-  if (mov === 'puno') return dedosAbiertos === 0;
-  if (mov === 'un_dedo') return dedos[0] && dedosAbiertos === 1;
-  if (mov === 'palma') return dedosAbiertos >= 3;
-  return false;
+  const muñeca = lm[0].y;
+  const manoArriba = muñeca > 0.65; // wrist cerca del borde inferior
+
+  switch(MOVIMIENTOS[indice]?.tipo) {
+    case 'mano_arriba':    return manoArriba;
+    case 'palma_abierta':  return abiertos === 4;
+    case 'puno':           return abiertos === 0 && !pulgAbierto;
+    case 'un_dedo':        return lm[8].y < lm[6].y && abiertos === 1;
+    case 'dos_dedos':      return lm[8].y < lm[6].y && lm[12].y < lm[10].y && abiertos === 2;
+    default: return false;
+  }
 }
 
-// Cuenta regresiva
-function iniciarCuenta() {
-  contando = true;
+// ── LÓGICA DEL JUEGO ──
+function iniciarMovimiento() {
+  if (indice >= MOVIMIENTOS.length) { finJuego(); return; }
+  const m = MOVIMIENTOS[indice];
+  document.getElementById('mov-emoji').textContent = m.emoji;
+  document.getElementById('mov-texto').textContent = m.instruccion;
+  document.getElementById('prog-texto').textContent = `Movimiento ${indice+1} de ${MOVIMIENTOS.length}`;
+  document.getElementById('barra').style.width = `${(indice/MOVIMIENTOS.length)*100}%`;
+  document.getElementById('estado').textContent = '👀 Observa';
+  document.getElementById('estado').className = 'estado';
+  document.getElementById('cuenta').textContent = '-';
+  esperando = false; detectadoOk = false;
+  hablar(m.instruccion);
+  setTimeout(cuenta, 2800);
+}
+
+function cuenta() {
   let n = 3;
   document.getElementById('cuenta').textContent = n;
   hablar(String(n));
   const iv = setInterval(() => {
     n--;
-    document.getElementById('cuenta').textContent = n > 0 ? n : '¡YA!';
-    if (n > 0) hablar(String(n));
-    else { hablar('Ya!'); clearInterval(iv); esperando = true; contando = false; }
+    if (n > 0) {
+      document.getElementById('cuenta').textContent = n;
+      hablar(String(n));
+    } else {
+      document.getElementById('cuenta').textContent = '¡YA!';
+      document.getElementById('estado').textContent = '🖐 ¡Haz el movimiento!';
+      hablar('Ya!');
+      clearInterval(iv);
+      esperando = true;
+      setTimeout(() => { if (esperando) incorrecto(); }, 4000);
+    }
   }, 1000);
-}
-
-function iniciarMovimiento() {
-  if (indice >= movimientos.length) { completar(); return; }
-  const m = movimientos[indice];
-  document.getElementById('mov-emoji').textContent = m.emoji;
-  document.getElementById('mov-texto').textContent = m.instruccion;
-  document.getElementById('prog-texto').textContent = `Movimiento ${indice+1} de ${movimientos.length}`;
-  document.getElementById('barra').style.width = `${(indice/movimientos.length)*100}%`;
-  document.getElementById('estado').textContent = '👀 Observa';
-  document.getElementById('estado').className = 'estado';
-  document.getElementById('cuenta').textContent = '-';
-  esperando = false;
-  hablar(m.instruccion);
-  setTimeout(iniciarCuenta, 2500);
 }
 
 function correcto() {
   esperando = false;
   puntos += 10;
   document.getElementById('puntos').textContent = puntos;
-  document.getElementById('estado').textContent = '✅ ¡Correcto!';
-  document.getElementById('estado').className = 'estado correcto';
+  document.getElementById('estado').textContent = '✅ ¡Muy bien!';
+  document.getElementById('estado').className = 'estado ok';
   hablar('Lo hiciste muy bien!');
-  setTimeout(() => { indice++; iniciarMovimiento(); }, 2000);
+  setTimeout(() => { indice++; iniciarMovimiento(); }, 2200);
 }
 
 function incorrecto() {
   esperando = false;
-  vidas--;
-  document.getElementById('vidas').textContent = '❤️'.repeat(Math.max(vidas,0)) + '🖤'.repeat(Math.max(3-vidas,0));
-  document.getElementById('estado').textContent = '❌ Incorrecto';
-  document.getElementById('estado').className = 'estado incorrecto';
-  hablar('Movimiento incorrecto, vuelve a intentarlo');
-  setTimeout(iniciarCuenta, 2000);
+  vidas = Math.max(0, vidas-1);
+  document.getElementById('vidas').textContent = '❤️'.repeat(vidas) + '🖤'.repeat(3-vidas);
+  document.getElementById('estado').textContent = '❌ Movimiento incorrecto';
+  document.getElementById('estado').className = 'estado mal';
+  hablar('Ese es el movimiento incorrecto. Vuelve a intentarlo!');
+  setTimeout(cuenta, 2200);
 }
 
-function completar() {
+function finJuego() {
   document.getElementById('barra').style.width = '100%';
   document.getElementById('mov-emoji').textContent = '🏆';
   document.getElementById('mov-texto').textContent = '¡Juego completado!';
   document.getElementById('estado').textContent = `🌟 ${puntos} puntos`;
-  document.getElementById('estado').className = 'estado correcto';
+  document.getElementById('estado').className = 'estado ok';
   hablar(`Felicidades! Completaste todos los movimientos con ${puntos} puntos!`);
 }
 
-// MediaPipe Hands
-const hands = new Hands({locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
-hands.setOptions({maxNumHands:1, modelComplexity:0, minDetectionConfidence:0.7, minTrackingConfidence:0.5});
-
-let deteccionOk = false, timerDet = null;
-
-hands.onResults(results => {
+// ── MEDIAPIPE HANDS ──
+async function initCamera() {
+  const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
-  canvas.width = canvas.offsetWidth;
-  canvas.height = canvas.offsetHeight;
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const badge = document.getElementById('hand-badge');
 
-  if (results.multiHandLandmarks?.length > 0 && esperando) {
-    const ok = detectarGesto(results.multiHandLandmarks[0]);
-    if (ok && !deteccionOk) {
-      deteccionOk = true;
-      timerDet = setTimeout(correcto, 800);
-    } else if (!ok) {
-      deteccionOk = false;
-      clearTimeout(timerDet);
-    }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});
+    video.srcObject = stream;
+    await new Promise(r => video.onloadedmetadata = r);
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+  } catch(e) {
+    document.getElementById('estado').textContent = '⚠️ Activa la cámara';
+    hablar('Por favor activa el permiso de cámara');
+    return;
   }
-});
 
-// Cámara
-const video = document.getElementById('video');
-const camera = new Camera(video, {
-  onFrame: async () => { await hands.send({image: video}); },
-  width:640, height:480
-});
-camera.start().then(() => {
-  setTimeout(() => { hablar('Bienvenido al juego Imitar Movimientos!'); setTimeout(iniciarMovimiento, 2000); }, 1000);
-});
+  // Cargar MediaPipe Hands
+  const {Hands} = await import('https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js');
+  const {Camera} = await import('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1640029074/camera_utils.js');
+  const {drawConnectors, drawLandmarks} = await import('https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js');
+  const {HAND_CONNECTIONS} = await import('https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js');
+
+  const hands = new Hands({locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${f}`});
+  hands.setOptions({maxNumHands:1, modelComplexity:0, minDetectionConfidence:0.65, minTrackingConfidence:0.5});
+
+  hands.onResults(results => {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    if (results.multiHandLandmarks?.length > 0) {
+      badge.classList.add('show');
+      const lm = results.multiHandLandmarks[0];
+      drawConnectors(ctx, lm, HAND_CONNECTIONS, {color:'#c084fc', lineWidth:3});
+      drawLandmarks(ctx, lm, {color:'#fff', lineWidth:1, radius:4});
+
+      if (esperando) {
+        const ok = detectarGesto(lm);
+        if (ok && !detectadoOk) {
+          detectadoOk = true;
+          timerDet = setTimeout(correcto, 700);
+        } else if (!ok) {
+          detectadoOk = false;
+          clearTimeout(timerDet);
+        }
+      }
+    } else {
+      badge.classList.remove('show');
+      detectadoOk = false;
+    }
+  });
+
+  const cam = new Camera(video, {
+    onFrame: async () => { await hands.send({image:video}); },
+    width:640, height:480
+  });
+  await cam.start();
+
+  // Iniciar juego
+  setTimeout(() => {
+    hablar('Bienvenido al juego Imitar Movimientos. Sigue las instrucciones!');
+    setTimeout(iniciarMovimiento, 2500);
+  }, 1000);
+}
+
+initCamera();
 </script>
 </body>
 </html>
