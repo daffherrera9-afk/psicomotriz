@@ -5,21 +5,21 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'modules'))
 
-from imitar import (dar_instrucciones, anunciar_movimiento, contar, ya,
+from modules.imitar import (dar_instrucciones, anunciar_movimiento, contar, ya,
                     resultado_correcto, resultado_incorrecto,
                     juego_completado as imitar_completado, movimientos)
 
-from reconocer import (dar_instrucciones_animales, dar_instrucciones_colores,
+from modules.reconocer import (dar_instrucciones_animales, dar_instrucciones_colores,
                        animal_correcto, animal_incorrecto,
                        color_correcto, color_incorrecto,
                        juego_completado as reconocer_completado,
                        animales, colores)
 
-from rompecabezas import (dar_instrucciones as rompe_instrucciones,
+from modules.rompecabezas import (dar_instrucciones as rompe_instrucciones,
                            pieza_correcta, pieza_incorrecta,
                            puzzle_completado, puzzles)
 
-from dibujo import (dar_instrucciones as dibujo_instrucciones,
+from modules.dibujo import (dar_instrucciones as dibujo_instrucciones,
                     cambiar_color, dibujo_guardado, lienzo_limpiado)
 
 app = Flask(__name__)
@@ -32,8 +32,6 @@ def index():
 @app.route('/modulo/<nombre>')
 def modulo(nombre):
     return render_template(f'modulo_{nombre}.html')
-
-# ===== MÓDULO 3 - IMITAR =====
 
 @app.route('/imitar/instrucciones')
 def imitar_instrucciones():
@@ -68,7 +66,15 @@ def imitar_completado_ruta():
     imitar_completado()
     return jsonify({'ok': True})
 
-# ===== MÓDULO 1 - RECONOCER =====
+@app.route('/imitar/contar/<int:numero>')
+def imitar_contar(numero):
+    contar(numero)
+    return jsonify({'ok': True})
+
+@app.route('/imitar/ya')
+def imitar_ya():
+    ya()
+    return jsonify({'ok': True})
 
 @app.route('/reconocer/animales')
 def reconocer_animales():
@@ -117,18 +123,6 @@ def reconocer_completado_ruta():
     reconocer_completado()
     return jsonify({'ok': True})
 
-@app.route('/imitar/contar/<int:numero>')
-def imitar_contar(numero):
-    contar(numero)
-    return jsonify({'ok': True})
-
-@app.route('/imitar/ya')
-def imitar_ya():
-    ya()
-    return jsonify({'ok': True})
-
-# ===== MÓDULO 2 - ROMPECABEZAS =====
-
 @app.route('/rompecabezas/puzzles')
 def rompe_puzzles():
     return jsonify(puzzles)
@@ -152,8 +146,6 @@ def rompe_pieza_incorrecta():
 def rompe_completado(nombre):
     puzzle_completado(nombre)
     return jsonify({'ok': True})
-
-# ===== MÓDULO 4 - DIBUJO =====
 
 @app.route('/dibujo/instrucciones')
 def dibujo_instrucciones_ruta():
