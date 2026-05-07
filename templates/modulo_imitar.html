@@ -87,14 +87,17 @@
 function tocar(nombre, cb) {
   var a = new Audio('/static/audio/' + nombre + '.mp3');
   var hecho = false;
+  var fallback = setTimeout(function() {
+    if (!hecho) { hecho = true; if (cb) cb(); }
+  }, 8000);
   function fin() {
     if (hecho) return;
     hecho = true;
+    clearTimeout(fallback);
     if (cb) cb();
   }
   a.onended = fin;
   a.onerror = fin;
-  setTimeout(fin, 8000); // fallback máximo 8s por si onended no dispara
   a.play().catch(fin);
 }
 
