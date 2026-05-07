@@ -82,18 +82,13 @@
 <button id="btn-iniciar" onclick="arrancar()">▶ Tocar aquí para comenzar!</button>
 
 <script>
-// ── AUDIO: una función simple, un audio a la vez, sin cola ──
-// Reproduce un solo mp3 y llama cb al terminar. Nunca falla.
+// ── AUDIO: una función simple, un audio a la vez ──
 function tocar(nombre, cb) {
   var a = new Audio('/static/audio/' + nombre + '.mp3');
   var hecho = false;
-  var fallback = setTimeout(function() {
-    if (!hecho) { hecho = true; if (cb) cb(); }
-  }, 8000);
   function fin() {
     if (hecho) return;
     hecho = true;
-    clearTimeout(fallback);
     if (cb) cb();
   }
   a.onended = fin;
@@ -101,10 +96,10 @@ function tocar(nombre, cb) {
   a.play().catch(fin);
 }
 
-// Reproduce lista de nombres en secuencia, llama cb al terminar todos
+// Reproduce lista en secuencia, llama cb al terminar todos
 function secuencia(lista, cb) {
   if (!lista || lista.length === 0) { if (cb) cb(); return; }
-  var copia = lista.slice(); // copia para no mutar el original
+  var copia = lista.slice();
   function siguiente() {
     if (copia.length === 0) { if (cb) cb(); return; }
     tocar(copia.shift(), siguiente);
@@ -236,14 +231,18 @@ function incorrecto() {
 function finJuego() {
   clearTimeout(timerIncorrecto);
   clearTimeout(timerDeteccion);
+  ocupado = true;
+  esperando = false;
   document.getElementById('barra').style.width = '100%';
   document.getElementById('mov-emoji').textContent = '🏆';
   document.getElementById('mov-texto').textContent = '¡Juego completado!';
   document.getElementById('estado').textContent = puntos + ' puntos';
   document.getElementById('estado').className = 'estado ok';
   setTimeout(function() {
-    secuencia(['felicidades', 'campeon'], null);
-  }, 300);
+    tocar('felicidades', function() {
+      tocar('campeon', null);
+    });
+  }, 500);
 }
 
 function arrancar() {
