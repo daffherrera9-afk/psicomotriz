@@ -97,8 +97,9 @@ function _tick() {
   function _fin() {
     _activo = false;
     _audioActual = null;
-    if (item.onFin) item.onFin();   // callback del grupo
-    _tick();                         // siguiente en cola
+    var cb = item.onFin;
+    _tick();                 // primero avanzar cola
+    if (cb) cb();           // luego callback (puede encolar más sin bloqueo)
   }
   a.onended = _fin;
   a.onerror = _fin;
@@ -182,8 +183,9 @@ function detectarGesto(lm) {
       return idx && mid && !ring && !pink;
 
     case 'palma_abierta':
-      // Los 4 dedos abiertos Y pulgar separado
-      return abiertos === 4 && pulgAbierto;
+      // Mano abierta: al menos 3 dedos extendidos (más fácil para niños)
+      // El pulgar no se exige porque en selfie es difícil de medir
+      return abiertos >= 3;
 
     default:
       return false;
