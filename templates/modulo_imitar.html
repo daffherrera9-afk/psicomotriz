@@ -86,13 +86,22 @@
 function tocar(nombre, cb) {
   var a = new Audio('/static/audio/' + nombre + '.mp3');
   var hecho = false;
+  var t = null;
   function fin() {
     if (hecho) return;
     hecho = true;
+    if (t) clearTimeout(t);
     if (cb) cb();
   }
   a.onended = fin;
   a.onerror = fin;
+  a.onloadedmetadata = function() {
+    // cuando sabemos la duración, ponemos fallback con 500ms extra
+    var dur = (a.duration || 4) * 1000 + 500;
+    t = setTimeout(fin, dur);
+  };
+  // fallback general por si no carga metadata
+  t = setTimeout(fin, 6000);
   a.play().catch(fin);
 }
 
