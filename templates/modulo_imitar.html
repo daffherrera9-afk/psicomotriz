@@ -82,15 +82,14 @@
 <button id="btn-iniciar" onclick="arrancar()">▶ Tocar aquí para comenzar!</button>
 
 <script>
-// ── AUDIOS con tu voz ──
+// ── AUDIOS sincronizados - uno espera al otro ──
 function audio(nombre) {
-  const a = new Audio('/static/audio/' + nombre + '.mp3');
-  a.play().catch(e => console.log('audio error:', e));
-  return a;
-}
-
-function audioSerie(nombres, delay=2500) {
-  nombres.forEach((n, i) => setTimeout(() => audio(n), i * delay));
+  return new Promise(resolve => {
+    const a = new Audio('/static/audio/' + nombre + '.mp3');
+    a.onended = resolve;
+    a.onerror = resolve;
+    a.play().catch(resolve);
+  });
 }
 
 const MOVIMIENTOS = [
@@ -113,7 +112,6 @@ function detectarGesto(lm) {
   ];
   const abiertos = dedos.filter(Boolean).length;
   const pulgAbierto = lm[4].x < lm[3].x;
-
   switch (MOVIMIENTOS[indice]?.tipo) {
     case 'cuatro_dedos':  return abiertos === 4 && !pulgAbierto;
     case 'puno':          return abiertos === 0 && !pulgAbierto;
@@ -124,7 +122,7 @@ function detectarGesto(lm) {
   }
 }
 
-function iniciarMovimiento() {
+async function iniciarMovimiento() {
   if (indice >= MOVIMIENTOS.length) { finJuego(); return; }
   const m = MOVIMIENTOS[indice];
   document.getElementById('mov-emoji').textContent = m.emoji;
@@ -135,65 +133,71 @@ function iniciarMovimiento() {
   document.getElementById('estado').className = 'estado';
   document.getElementById('cuenta').textContent = '👂';
   esperando = false; detectadoOk = false;
-  audio(m.corto);
-  setTimeout(() => audio(m.largo), 2500);
-  setTimeout(cuenta, 6000);
+  await audio(m.corto);
+  await audio(m.largo);
+  cuenta();
 }
 
-function cuenta() {
+async function cuenta() {
   document.getElementById('estado').textContent = '⏳ Prepárate...';
-  audio('preparate');
-  setTimeout(() => { document.getElementById('cuenta').textContent = '3'; audio('tres'); }, 1500);
-  setTimeout(() => { document.getElementById('cuenta').textContent = '2'; audio('dos');  }, 2800);
-  setTimeout(() => { document.getElementById('cuenta').textContent = '1'; audio('uno');  }, 4100);
-  setTimeout(() => {
-    document.getElementById('cuenta').textContent = '¡YA!';
-    document.getElementById('estado').textContent = '🖐 Hazlo ahora!';
-    audio('ya');
-    esperando = true;
-    setTimeout(() => { if (esperando) incorrecto(); }, 6000);
-  }, 5400);
+  document.getElementById('cuenta').textContent = '...';
+  await audio('preparate');
+  document.getElementById('cuenta').textContent = '3';
+  await audio('tres');
+  document.getElementById('cuenta').textContent = '2';
+  await audio('dos');
+  document.getElementById('cuenta').textContent = '1';
+  await audio('uno');
+  document.getElementById('cuenta').textContent = '¡YA!';
+  document.getElementById('estado').textContent = '🖐 Hazlo ahora!';
+  await audio('ya');
+  esperando = true;
+  setTimeout(() => { if (esperando) incorrecto(); }, 6000);
 }
 
-function correcto() {
+async function correcto() {
   esperando = false;
   puntos += 10;
   document.getElementById('puntos').textContent = puntos;
   document.getElementById('estado').textContent = '✅ Muy bien!';
   document.getElementById('estado').className = 'estado ok';
-  audio('muy_bien');
-  setTimeout(() => audio('inteligente'), 2000);
-  setTimeout(() => { indice++; iniciarMovimiento(); }, 5000);
+  await audio('muy_bien');
+  await audio('inteligente');
+  indice++;
+  iniciarMovimiento();
 }
 
-function incorrecto() {
+async function incorrecto() {
   esperando = false;
   vidas = Math.max(0, vidas - 1);
   document.getElementById('vidas').textContent = '❤️'.repeat(vidas) + '🖤'.repeat(3 - vidas);
   document.getElementById('estado').textContent = '❌ Vuelve a intentarlo!';
   document.getElementById('estado').className = 'estado mal';
-  audio('no_preocupes');
-  setTimeout(() => audio('intenta'), 2000);
-  setTimeout(() => audio(MOVIMIENTOS[indice].largo), 4000);
-  setTimeout(cuenta, 7000);
+  await audio('no_preocupes');
+  await audio('intenta');
+  await audio(MOVIMIENTOS[indice].largo);
+  cuenta();
 }
 
-function finJuego() {
+async function finJuego() {
   document.getElementById('barra').style.width = '100%';
   document.getElementById('mov-emoji').textContent = '🏆';
   document.getElementById('mov-texto').textContent = 'Juego completado!';
   document.getElementById('estado').textContent = puntos + ' puntos';
   document.getElementById('estado').className = 'estado ok';
-  audio('felicidades');
-  setTimeout(() => audio('campeon'), 3000);
+  await audio('felicidades');
+  await audio('campeon');
 }
 
-function arrancar() {
+async function arrancar() {
   if (juegoArrancado) return;
   juegoArrancado = true;
   document.getElementById('btn-iniciar').style.display = 'none';
-  audioSerie(['bienvenida_1','bienvenida_2','bienvenida_3','bienvenida_4'], 3000);
-  setTimeout(iniciarMovimiento, 13000);
+  await audio('bienvenida_1');
+  await audio('bienvenida_2');
+  await audio('bienvenida_3');
+  await audio('bienvenida_4');
+  iniciarMovimiento();
 }
 
 // ── CÁMARA Y MEDIAPIPE ──
@@ -220,12 +224,10 @@ window.addEventListener('load', () => {
     intentos++;
     if (typeof Hands !== 'undefined' && typeof Camera !== 'undefined') {
       clearInterval(esperarMP);
-
       const hands = new Hands({
         locateFile: f => 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/' + f
       });
       hands.setOptions({ maxNumHands:1, modelComplexity:0, minDetectionConfidence:0.7, minTrackingConfidence:0.55 });
-
       hands.onResults(results => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         if (results.multiHandLandmarks?.length > 0) {
@@ -245,13 +247,11 @@ window.addEventListener('load', () => {
           detectadoOk=false;
         }
       });
-
       const cam = new Camera(video, {
         onFrame: async () => { await hands.send({ image: video }); },
         width:640, height:480
       });
       cam.start();
-
     } else if (intentos > 40) {
       clearInterval(esperarMP);
       document.getElementById('estado').textContent = 'Error cargando. Recarga la pagina.';
