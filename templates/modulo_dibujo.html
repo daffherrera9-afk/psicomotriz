@@ -27,7 +27,7 @@
   .grosor-btn.activo{border-color:white;background:rgba(255,255,255,.3)}
   .grosor-dot{background:white;border-radius:50%}
   .instruccion{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.8);color:white;padding:10px 24px;border-radius:50px;font-weight:700;font-size:.9rem;z-index:100;white-space:nowrap}
-  #cursor{position:fixed;border-radius:50%;pointer-events:none;z-index:200;transform:translate(-50%,-50%);transition:width .1s,height .1s;display:none}
+  #cursor{position:fixed;border-radius:50%;pointer-events:none;z-index:200;transform:translate(-50%,-50%);display:none}
 </style>
 </head>
 <body>
@@ -73,23 +73,19 @@
   const ctx    = canvas.getContext('2d');
   const cursor = document.getElementById('cursor');
 
-  // Estado
-  let color   = '#ef4444';
-  let grosor  = 5;
+  let color = '#ef4444';
+  let grosor = 5;
   let isBorrador = false;
-
-  // Suavizado: historial de posiciones
   let posHistory = [];
-  const SMOOTH = 6; // cuántos frames promediar
-
-  // Para detectar "dedo levantado" con historial (anti-parpadeo)
+  const SMOOTH = 5;
   let dedoFrames = 0;
   let noDedoFrames = 0;
-  const UMBRAL = 3; // frames seguidos para cambiar estado
+  const UMBRAL = 2;
   let dibujando = false;
+  let lastX = null, lastY = null;
 
   function resizeCanvas(){
-    canvas.width  = window.innerWidth;
+    canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
   }
   resizeCanvas();
@@ -99,7 +95,6 @@
     color = c; isBorrador = false;
     document.querySelectorAll('.color-btn').forEach(b=>b.classList.remove('activo'));
     btn.classList.add('activo');
-    cursor.style.borderColor = c;
   }
   function setGrosor(g, btn){
     grosor = g; isBorrador = false;
@@ -110,11 +105,11 @@
     isBorrador = true; grosor = 45;
     document.querySelectorAll('.grosor-btn').forEach(b=>b.classList.remove('activo'));
     btn.classList.add('activo');
-    cursor.style.borderColor = 'white';
   }
   function limpiar(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
     posHistory = [];
+    lastX = null; lastY = null;
     hablar('Lienzo limpio!');
   }
   function guardar(){
@@ -131,34 +126,32 @@
     speechSynthesis.speak(u);
   }
 
-  // Promedio suavizado
   function smoothPos(x, y){
-    posHistory.push({x,y});
+    posHistory.push({x, y});
     if(posHistory.length > SMOOTH) posHistory.shift();
     const avg = posHistory.reduce((a,p)=>({x:a.x+p.x, y:a.y+p.y}), {x:0,y:0});
     return { x: avg.x/posHistory.length, y: avg.y/posHistory.length };
   }
 
-  // Solo índice levantado
   function soloIndice(lm){
-    const iUp  = lm[8].y  < lm[6].y  - 0.02;
-    const mDn  = lm[12].y > lm[10].y - 0.01;
-    const rDn  = lm[16].y > lm[14].y - 0.01;
-    const pDn  = lm[20].y > lm[18].y - 0.01;
+    // Índice arriba con margen más generoso
+    const iUp = lm[8].y < lm[6].y - 0.01;
+    // Otros dedos abajo con margen más generoso para zona baja
+    const mDn = lm[12].y > lm[10].y - 0.02;
+    const rDn = lm[16].y > lm[14].y - 0.02;
+    const pDn = lm[20].y > lm[18].y - 0.02;
     return iUp && mDn && rDn && pDn;
   }
-
-  // Última posición para trazar
-  let lastX = null, lastY = null;
 
   const hands = new Hands({
     locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
   });
+
   hands.setOptions({
     maxNumHands: 1,
     modelComplexity: 1,
-    minDetectionConfidence: 0.55,
-    minTrackingConfidence: 0.75
+    minDetectionConfidence: 0.4,
+    minTrackingConfidence: 0.6
   });
 
   hands.onResults(res => {
@@ -166,24 +159,21 @@
       const lm = res.multiHandLandmarks[0];
       const raw = lm[8];
 
-      // Coordenada espejada
+      // Mapear coordenadas - ampliar zona inferior
       const rawX = (1 - raw.x) * canvas.width;
-      const rawY = raw.y * canvas.height;
+      // Multiplicar Y por 1.1 para que llegue mejor abajo
+      const rawY = Math.min(raw.y * canvas.height * 1.1, canvas.height - 10);
 
-      // Suavizar posición
       const {x, y} = smoothPos(rawX, rawY);
 
-      // Mover cursor
       cursor.style.display = 'block';
       cursor.style.left = x + 'px';
-      cursor.style.top  = y + 'px';
+      cursor.style.top = y + 'px';
 
       if(soloIndice(lm)){
         dedoFrames++;
         noDedoFrames = 0;
-        if(dedoFrames >= UMBRAL){
-          dibujando = true;
-        }
+        if(dedoFrames >= UMBRAL) dibujando = true;
       } else {
         noDedoFrames++;
         dedoFrames = 0;
@@ -195,25 +185,25 @@
         }
       }
 
-      // Estilo del cursor
-      const sz = grosor + 10;
-      cursor.style.width  = sz + 'px';
+      const sz = grosor + 12;
+      cursor.style.width = sz + 'px';
       cursor.style.height = sz + 'px';
-      cursor.style.background = dibujando ? (isBorrador ? 'rgba(255,255,255,0.3)' : color) : 'transparent';
+      cursor.style.background = dibujando
+        ? (isBorrador ? 'rgba(255,255,255,0.3)' : color)
+        : 'transparent';
       cursor.style.border = `3px solid ${dibujando ? 'white' : 'rgba(255,255,255,0.4)'}`;
 
       document.getElementById('instruccion').textContent =
         dibujando ? '✏️ ¡Dibujando!' : '☝️ Levanta solo el índice para dibujar';
 
-      // Dibujar trazo
       if(dibujando){
         if(lastX !== null && lastY !== null){
           ctx.beginPath();
           ctx.moveTo(lastX, lastY);
           ctx.lineTo(x, y);
-          ctx.lineWidth   = grosor;
-          ctx.lineCap     = 'round';
-          ctx.lineJoin    = 'round';
+          ctx.lineWidth = grosor;
+          ctx.lineCap = 'round';
+          ctx.lineJoin = 'round';
           ctx.globalCompositeOperation = isBorrador ? 'destination-out' : 'source-over';
           ctx.strokeStyle = isBorrador ? 'rgba(0,0,0,1)' : color;
           ctx.stroke();
