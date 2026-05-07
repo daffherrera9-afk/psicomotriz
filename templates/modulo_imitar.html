@@ -238,7 +238,9 @@ function finJuego() {
   document.getElementById('mov-texto').textContent = '¡Juego completado!';
   document.getElementById('estado').textContent = puntos + ' puntos';
   document.getElementById('estado').className = 'estado ok';
-  secuencia(['felicidades', 'campeon'], null);
+  setTimeout(function() {
+    secuencia(['felicidades', 'campeon'], null);
+  }, 300);
 }
 
 function arrancar() {
