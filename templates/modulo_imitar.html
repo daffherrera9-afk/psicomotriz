@@ -82,60 +82,56 @@
 <button id="btn-iniciar" onclick="arrancar()">▶ Tocar aquí para comenzar!</button>
 
 <script>
-// ── SISTEMA DE AUDIO: cola simple, sin async/await, sin gaps ──
-// Cada audio se crea NUEVO cada vez (evita el problema de iOS con objetos reutilizados)
+// ── SISTEMA DE AUDIO: cola global única, sin gaps, sin anidamiento ──
 
-let _colaAudio = [];
-let _tocando = false;
+let _cola = [];       // {nombre, onFin} — onFin solo en el último de cada grupo
+let _activo = false;
+let _audioActual = null;
 
-function _siguienteAudio() {
-  if (_tocando || _colaAudio.length === 0) return;
-  _tocando = true;
-  const item = _colaAudio.shift();
+function _tick() {
+  if (_activo || _cola.length === 0) return;
+  _activo = true;
+  const item = _cola.shift();
   const a = new Audio('/static/audio/' + item.nombre + '.mp3');
-  // Sin gap: empezar siguiente apenas termine
-  a.onended = function() {
-    _tocando = false;
-    if (_colaAudio.length > 0) {
-      _siguienteAudio();
-    } else if (item.cb) {
-      item.cb();
-    }
-  };
-  a.onerror = function() {
-    _tocando = false;
-    if (_colaAudio.length > 0) {
-      _siguienteAudio();
-    } else if (item.cb) {
-      item.cb();
-    }
-  };
-  a.play().catch(function() {
-    _tocando = false;
-    if (_colaAudio.length > 0) {
-      _siguienteAudio();
-    } else if (item.cb) {
-      item.cb();
-    }
-  });
+  _audioActual = a;
+  function _fin() {
+    _activo = false;
+    _audioActual = null;
+    if (item.onFin) item.onFin();   // callback del grupo
+    _tick();                         // siguiente en cola
+  }
+  a.onended = _fin;
+  a.onerror = _fin;
+  a.play().catch(_fin);
 }
 
-// Detener todo y limpiar cola
+// Detener y vaciar cola
 function pararAudio() {
-  _colaAudio = [];
-  _tocando = false;
+  _cola = [];
+  _activo = false;
+  if (_audioActual) {
+    _audioActual.onended = null;
+    _audioActual.onerror = null;
+    try { _audioActual.pause(); } catch(e) {}
+    _audioActual = null;
+  }
 }
 
-// Reproducir lista de audios, llamar cb al terminar el último
-function reproducir(lista, cb) {
-  pararAudio();
+// Encolar lista; llamar cb después del último sin interrumpir lo que hay antes
+function encolar(lista, cb) {
   lista.forEach(function(nombre, i) {
-    _colaAudio.push({
+    _cola.push({
       nombre: nombre,
-      cb: i === lista.length - 1 ? (cb || null) : null
+      onFin: (i === lista.length - 1 && cb) ? cb : null
     });
   });
-  _siguienteAudio();
+  _tick();
+}
+
+// Limpiar todo y reproducir lista nueva
+function reproducir(lista, cb) {
+  pararAudio();
+  encolar(lista, cb);
 }
 
 // ── MOVIMIENTOS ──
@@ -225,17 +221,18 @@ function cuenta() {
   document.getElementById('estado').textContent = '⏳ Prepárate...';
   document.getElementById('cuenta').textContent = '...';
 
-  // Reproducir preparate, luego 3, 2, 1, ya — actualizando pantalla en cada uno
-  reproducir(['preparate'], function() {
+  // Una sola cola continua — los callbacks actualizan pantalla entre audios
+  pararAudio();
+  encolar(['preparate'], function() {
     document.getElementById('cuenta').textContent = '3';
-    reproducir(['tres'], function() {
+    encolar(['tres'], function() {
       document.getElementById('cuenta').textContent = '2';
-      reproducir(['dos'], function() {
+      encolar(['dos'], function() {
         document.getElementById('cuenta').textContent = '1';
-        reproducir(['uno'], function() {
+        encolar(['uno'], function() {
           document.getElementById('cuenta').textContent = '¡YA!';
           document.getElementById('estado').textContent = '🖐 Hazlo ahora!';
-          reproducir(['ya'], function() {
+          encolar(['ya'], function() {
             esperando = true;
             timerIncorrecto = setTimeout(function() {
               if (esperando && !ocupado) incorrecto();
