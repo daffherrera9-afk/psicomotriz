@@ -82,57 +82,31 @@
 <button id="btn-iniciar" onclick="arrancar()">▶ Tocar aquí para comenzar!</button>
 
 <script>
-// ── SISTEMA DE AUDIO: cola global única, sin gaps, sin anidamiento ──
-
-let _cola = [];       // {nombre, onFin} — onFin solo en el último de cada grupo
-let _activo = false;
-let _audioActual = null;
-
-function _tick() {
-  if (_activo || _cola.length === 0) return;
-  _activo = true;
-  const item = _cola.shift();
-  const a = new Audio('/static/audio/' + item.nombre + '.mp3');
-  _audioActual = a;
-  function _fin() {
-    _activo = false;
-    _audioActual = null;
-    var cb = item.onFin;
-    _tick();                 // primero avanzar cola
-    if (cb) cb();           // luego callback (puede encolar más sin bloqueo)
+// ── AUDIO: una función simple, un audio a la vez, sin cola ──
+// Reproduce un solo mp3 y llama cb al terminar. Nunca falla.
+function tocar(nombre, cb) {
+  var a = new Audio('/static/audio/' + nombre + '.mp3');
+  var hecho = false;
+  function fin() {
+    if (hecho) return;
+    hecho = true;
+    if (cb) cb();
   }
-  a.onended = _fin;
-  a.onerror = _fin;
-  a.play().catch(_fin);
+  a.onended = fin;
+  a.onerror = fin;
+  setTimeout(fin, 8000); // fallback máximo 8s por si onended no dispara
+  a.play().catch(fin);
 }
 
-// Detener y vaciar cola
-function pararAudio() {
-  _cola = [];
-  _activo = false;
-  if (_audioActual) {
-    _audioActual.onended = null;
-    _audioActual.onerror = null;
-    try { _audioActual.pause(); } catch(e) {}
-    _audioActual = null;
+// Reproduce lista de nombres en secuencia, llama cb al terminar todos
+function secuencia(lista, cb) {
+  if (!lista || lista.length === 0) { if (cb) cb(); return; }
+  var copia = lista.slice(); // copia para no mutar el original
+  function siguiente() {
+    if (copia.length === 0) { if (cb) cb(); return; }
+    tocar(copia.shift(), siguiente);
   }
-}
-
-// Encolar lista; llamar cb después del último sin interrumpir lo que hay antes
-function encolar(lista, cb) {
-  lista.forEach(function(nombre, i) {
-    _cola.push({
-      nombre: nombre,
-      onFin: (i === lista.length - 1 && cb) ? cb : null
-    });
-  });
-  _tick();
-}
-
-// Limpiar todo y reproducir lista nueva
-function reproducir(lista, cb) {
-  pararAudio();
-  encolar(lista, cb);
+  siguiente();
 }
 
 // ── MOVIMIENTOS ──
@@ -149,46 +123,22 @@ let esperando = false, detectadoOk = false;
 let timerIncorrecto = null, timerDeteccion = null;
 let juegoArrancado = false, ocupado = false;
 
-// ── DETECCIÓN DE GESTOS (mejorada) ──
+// ── DETECCIÓN DE GESTOS ──
 function detectarGesto(lm) {
-  // Dedos índice, medio, anular, meñique: extendidos si punta más arriba que nudillo
-  const idx   = lm[8].y  < lm[6].y;
-  const mid   = lm[12].y < lm[10].y;
-  const ring  = lm[16].y < lm[14].y;
-  const pink  = lm[20].y < lm[18].y;
-  const dedos = [idx, mid, ring, pink];
-  const abiertos = dedos.filter(Boolean).length;
-
-  // Pulgar: comparar con base de la palma (punto 0) para ser más robusto
-  // En mano espejada (selfie), el pulgar abierto tiene X mayor que la base
-  const pulgX = lm[4].x;
-  const baseX = lm[17].x; // base meñique como referencia
-  const pulgAbierto = Math.abs(pulgX - lm[3].x) > 0.06; // pulgar separado del nudillo
+  const idx  = lm[8].y  < lm[6].y;
+  const mid  = lm[12].y < lm[10].y;
+  const ring = lm[16].y < lm[14].y;
+  const pink = lm[20].y < lm[18].y;
+  const abiertos = [idx, mid, ring, pink].filter(Boolean).length;
+  const pulgAbierto = Math.abs(lm[4].x - lm[3].x) > 0.06;
 
   switch (MOVIMIENTOS[indice]?.tipo) {
-    case 'cuatro_dedos':
-      // 4 dedos abiertos, pulgar no importa
-      return abiertos === 4;
-
-    case 'puno':
-      // Todos cerrados
-      return abiertos === 0 && !pulgAbierto;
-
-    case 'un_dedo':
-      // Solo índice abierto
-      return idx && !mid && !ring && !pink;
-
-    case 'dos_dedos':
-      // Solo índice y medio
-      return idx && mid && !ring && !pink;
-
-    case 'palma_abierta':
-      // Mano abierta: al menos 3 dedos extendidos (más fácil para niños)
-      // El pulgar no se exige porque en selfie es difícil de medir
-      return abiertos >= 3;
-
-    default:
-      return false;
+    case 'cuatro_dedos':  return abiertos === 4;
+    case 'puno':          return abiertos === 0 && !pulgAbierto;
+    case 'un_dedo':       return idx && !mid && !ring && !pink;
+    case 'dos_dedos':     return idx && mid && !ring && !pink;
+    case 'palma_abierta': return abiertos >= 3;
+    default: return false;
   }
 }
 
@@ -211,7 +161,7 @@ function iniciarMovimiento() {
   document.getElementById('estado').className = 'estado';
   document.getElementById('cuenta').textContent = '👂';
 
-  reproducir([m.corto, m.largo], function() { cuenta(); });
+  secuencia([m.corto, m.largo], function() { cuenta(); });
 }
 
 function cuenta() {
@@ -219,22 +169,21 @@ function cuenta() {
   esperando = false;
   detectadoOk = false;
   clearTimeout(timerIncorrecto);
+  clearTimeout(timerDeteccion);
 
   document.getElementById('estado').textContent = '⏳ Prepárate...';
   document.getElementById('cuenta').textContent = '...';
 
-  // Una sola cola continua — los callbacks actualizan pantalla entre audios
-  pararAudio();
-  encolar(['preparate'], function() {
+  tocar('preparate', function() {
     document.getElementById('cuenta').textContent = '3';
-    encolar(['tres'], function() {
+    tocar('tres', function() {
       document.getElementById('cuenta').textContent = '2';
-      encolar(['dos'], function() {
+      tocar('dos', function() {
         document.getElementById('cuenta').textContent = '1';
-        encolar(['uno'], function() {
+        tocar('uno', function() {
           document.getElementById('cuenta').textContent = '¡YA!';
           document.getElementById('estado').textContent = '🖐 Hazlo ahora!';
-          encolar(['ya'], function() {
+          tocar('ya', function() {
             esperando = true;
             timerIncorrecto = setTimeout(function() {
               if (esperando && !ocupado) incorrecto();
@@ -258,7 +207,7 @@ function correcto() {
   document.getElementById('estado').textContent = '✅ ¡Muy bien!';
   document.getElementById('estado').className = 'estado ok';
 
-  reproducir(['muy_bien', 'inteligente'], function() {
+  secuencia(['muy_bien', 'inteligente'], function() {
     indice++;
     iniciarMovimiento();
   });
@@ -276,26 +225,27 @@ function incorrecto() {
   document.getElementById('estado').textContent = '❌ ¡Vuelve a intentarlo!';
   document.getElementById('estado').className = 'estado mal';
 
-  reproducir(['no_preocupes', 'intenta', MOVIMIENTOS[indice].largo], function() {
+  secuencia(['no_preocupes', 'intenta', MOVIMIENTOS[indice].largo], function() {
     cuenta();
   });
 }
 
 function finJuego() {
   clearTimeout(timerIncorrecto);
+  clearTimeout(timerDeteccion);
   document.getElementById('barra').style.width = '100%';
   document.getElementById('mov-emoji').textContent = '🏆';
   document.getElementById('mov-texto').textContent = '¡Juego completado!';
   document.getElementById('estado').textContent = puntos + ' puntos';
   document.getElementById('estado').className = 'estado ok';
-  reproducir(['felicidades', 'campeon'], null);
+  secuencia(['felicidades', 'campeon'], null);
 }
 
 function arrancar() {
   if (juegoArrancado) return;
   juegoArrancado = true;
   document.getElementById('btn-iniciar').style.display = 'none';
-  reproducir(['bienvenida_1', 'bienvenida_2', 'bienvenida_3', 'bienvenida_4'], function() {
+  secuencia(['bienvenida_1', 'bienvenida_2', 'bienvenida_3', 'bienvenida_4'], function() {
     iniciarMovimiento();
   });
 }
