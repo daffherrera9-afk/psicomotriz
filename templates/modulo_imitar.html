@@ -38,7 +38,8 @@
   .barra-fill{background:linear-gradient(135deg,#c084fc,#9333ea);height:100%;border-radius:50px;transition:width .5s}
   .hand-badge{position:absolute;top:8px;right:8px;background:#22c55e;color:white;font-size:.7rem;font-weight:900;padding:4px 10px;border-radius:50px;opacity:0;transition:opacity .3s}
   .hand-badge.show{opacity:1}
-  .loading-msg{font-size:.85rem;color:#7c3aed;font-weight:700;margin-top:8px}
+  #btn-iniciar{display:block;width:100%;max-width:820px;margin:14px 0 0;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;border:none;border-radius:20px;padding:18px;font-family:'Nunito',sans-serif;font-size:1.3rem;font-weight:900;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.3);animation:pulsebtn 1.2s infinite alternate}
+  @keyframes pulsebtn{from{transform:scale(1)}to{transform:scale(1.03)}}
 </style>
 </head>
 <body>
@@ -60,14 +61,13 @@
       <canvas id="canvas"></canvas>
       <div class="hand-badge" id="hand-badge">✋ Mano detectada</div>
     </div>
-    <div class="loading-msg" id="loading-msg">⏳ Cargando detector de manos...</div>
   </div>
 
   <div class="card instruccion-card">
     <div class="mov-emoji" id="mov-emoji">🤖</div>
-    <div class="mov-texto" id="mov-texto">Preparando juego...</div>
-    <div class="cuenta" id="cuenta">👂</div>
-    <div class="estado" id="estado">🎮 Cargando...</div>
+    <div class="mov-texto" id="mov-texto">Toca el botón verde para comenzar</div>
+    <div class="cuenta" id="cuenta">👇</div>
+    <div class="estado" id="estado">🎮 Listo para jugar</div>
   </div>
 </div>
 
@@ -79,196 +79,252 @@
   <div class="barra-bg"><div class="barra-fill" id="barra" style="width:0%"></div></div>
 </div>
 
+<!-- BOTÓN GRANDE - necesario para activar la voz en Safari/iPad -->
+<button id="btn-iniciar" onclick="arrancar()">▶ ¡Tocar aquí para comenzar!</button>
+
 <script>
+// ── MOVIMIENTOS - todos distintos y fáciles para niños ──
 const MOVIMIENTOS = [
-  {instruccion:"Levanta la mano bien arriba", detalle:"Sube tu mano lo más alto que puedas, así como tocando el cielo!", emoji:"🙋", tipo:"mano_arriba"},
-  {instruccion:"Muestra todos los dedos abiertos", detalle:"Abre tu mano bien grande, todos los dedos estirados!", emoji:"🖐", tipo:"palma_abierta"},
-  {instruccion:"Haz un puño cerrado", detalle:"Cierra tu mano fuerte, aprieta todos los dedos juntos!", emoji:"✊", tipo:"puno"},
-  {instruccion:"Señala con un solo dedo hacia arriba", detalle:"Levanta solo el dedo índice, el dedito que usas para señalar!", emoji:"☝️", tipo:"un_dedo"},
-  {instruccion:"Muestra dos dedos en V de victoria", detalle:"Levanta dos dedos formando una V, como señal de victoria!", emoji:"✌️", tipo:"dos_dedos"}
+  {
+    instruccion: "Muestra 4 dedos",
+    detalle: "Levanta cuatro dedos. Dobla solo el pulgar hacia adentro!",
+    emoji: "4️⃣",
+    tipo: "cuatro_dedos"
+  },
+  {
+    instruccion: "Haz un punio cerrado",
+    detalle: "Cierra toda tu mano bien fuerte. Todos los dedos juntos!",
+    emoji: "✊",
+    tipo: "puno"
+  },
+  {
+    instruccion: "Senala con un solo dedo",
+    detalle: "Levanta solo el dedo indice. El dedito que usas para tocar la pantalla!",
+    emoji: "☝️",
+    tipo: "un_dedo"
+  },
+  {
+    instruccion: "Muestra dos dedos en V",
+    detalle: "Levanta el dedo indice y el dedo medio juntos. Como la letra V de victoria!",
+    emoji: "✌️",
+    tipo: "dos_dedos"
+  },
+  {
+    instruccion: "Abre toda la mano",
+    detalle: "Estira todos los cinco dedos bien abiertos. Como un abanico grande!",
+    emoji: "🖐",
+    tipo: "palma_abierta"
+  }
 ];
 
-let indice=0, puntos=0, vidas=3, esperando=false, detectadoOk=false, timerDet=null, juegoIniciado=false;
+let indice=0, puntos=0, vidas=3, esperando=false, detectadoOk=false, timerDet=null;
+let mpListo=false, juegoArrancado=false;
 
 // ── VOZ ──
-function hablar(texto, vel=0.78, tono=1.2) {
-  window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(texto);
-  u.lang = 'es-ES'; u.rate = vel; u.pitch = tono; u.volume = 1;
-  const vs = window.speechSynthesis.getVoices();
-  const esp = vs.find(v=>v.lang.startsWith('es') && v.name.toLowerCase().includes('female')) || vs.find(v=>v.lang.startsWith('es'));
-  if(esp) u.voice = esp;
-  window.speechSynthesis.speak(u);
+function hablar(texto, vel=0.78, tono=1.15) {
+  try {
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(texto);
+    u.lang = 'es-ES'; u.rate = vel; u.pitch = tono; u.volume = 1;
+    const vs = window.speechSynthesis.getVoices();
+    const esp = vs.find(v => v.lang.startsWith('es') && v.name.toLowerCase().includes('female'))
+             || vs.find(v => v.lang.startsWith('es'));
+    if (esp) u.voice = esp;
+    window.speechSynthesis.speak(u);
+  } catch(e) {}
 }
 
-function hablarSerie(frases, delay=1800) {
-  frases.forEach((f,i) => setTimeout(() => hablar(f), i * delay));
+function hablarSerie(frases, delay=2000) {
+  frases.forEach((f, i) => setTimeout(() => hablar(f), i * delay));
 }
 
-// ── GESTOS ──
+// ── DETECCIÓN DE GESTOS ──
 function detectarGesto(lm) {
-  const abiertos = [
-    lm[8].y  < lm[6].y,
-    lm[12].y < lm[10].y,
-    lm[16].y < lm[14].y,
-    lm[20].y < lm[18].y
-  ].filter(Boolean).length;
+  const dedos = [
+    lm[8].y  < lm[6].y,   // índice
+    lm[12].y < lm[10].y,  // medio
+    lm[16].y < lm[14].y,  // anular
+    lm[20].y < lm[18].y   // meñique
+  ];
+  const abiertos = dedos.filter(Boolean).length;
   const pulgAbierto = lm[4].x < lm[3].x;
-  const manoArriba = lm[0].y > 0.65;
 
-  switch(MOVIMIENTOS[indice]?.tipo) {
-    case 'mano_arriba':   return manoArriba;
-    case 'palma_abierta': return abiertos === 4;
+  switch (MOVIMIENTOS[indice]?.tipo) {
+    case 'cuatro_dedos':  return abiertos === 4 && !pulgAbierto;
     case 'puno':          return abiertos === 0 && !pulgAbierto;
-    case 'un_dedo':       return lm[8].y < lm[6].y && abiertos === 1;
-    case 'dos_dedos':     return lm[8].y < lm[6].y && lm[12].y < lm[10].y && abiertos === 2;
+    case 'un_dedo':       return dedos[0] && abiertos === 1;
+    case 'dos_dedos':     return dedos[0] && dedos[1] && abiertos === 2;
+    case 'palma_abierta': return abiertos === 4 && pulgAbierto;
     default: return false;
   }
 }
 
-// ── JUEGO ──
+// ── LÓGICA DEL JUEGO ──
 function iniciarMovimiento() {
-  if(indice >= MOVIMIENTOS.length){ finJuego(); return; }
+  if (indice >= MOVIMIENTOS.length) { finJuego(); return; }
   const m = MOVIMIENTOS[indice];
   document.getElementById('mov-emoji').textContent = m.emoji;
   document.getElementById('mov-texto').textContent = m.instruccion;
   document.getElementById('prog-texto').textContent = `Movimiento ${indice+1} de ${MOVIMIENTOS.length}`;
-  document.getElementById('barra').style.width = `${(indice/MOVIMIENTOS.length)*100}%`;
-  document.getElementById('estado').textContent = '👀 Escucha la instrucción';
+  document.getElementById('barra').style.width = `${(indice / MOVIMIENTOS.length) * 100}%`;
+  document.getElementById('estado').textContent = '👀 Escucha bien...';
   document.getElementById('estado').className = 'estado';
   document.getElementById('cuenta').textContent = '👂';
   esperando = false; detectadoOk = false;
-  hablarSerie([m.instruccion, m.detalle], 2000);
+  hablarSerie([m.instruccion, m.detalle], 2200);
   setTimeout(cuenta, 5500);
 }
 
 function cuenta() {
-  hablar('Prepárate', 0.75, 1.2);
-  document.getElementById('estado').textContent = '⏳ Prepárate...';
-  setTimeout(()=>{
-    let n=3;
+  document.getElementById('estado').textContent = '⏳ Preparate...';
+  hablar('Preparate', 0.75, 1.2);
+  setTimeout(() => {
+    let n = 3;
     document.getElementById('cuenta').textContent = n;
     hablar('3', 0.7, 1.3);
-    const iv = setInterval(()=>{
+    const iv = setInterval(() => {
       n--;
-      if(n>0){
+      if (n > 0) {
         document.getElementById('cuenta').textContent = n;
         hablar(String(n), 0.7, 1.3);
       } else {
         document.getElementById('cuenta').textContent = '¡YA!';
-        document.getElementById('estado').textContent = '🖐 ¡Haz el movimiento ahora!';
+        document.getElementById('estado').textContent = '🖐 Hazlo ahora!';
         hablar('Ya! Hazlo ahora!', 0.8, 1.3);
         clearInterval(iv);
         esperando = true;
-        setTimeout(()=>{ if(esperando) incorrecto(); }, 5000);
+        setTimeout(() => { if (esperando) incorrecto(); }, 5000);
       }
     }, 1100);
-  }, 1200);
+  }, 1300);
 }
 
 function correcto() {
   esperando = false;
   puntos += 10;
   document.getElementById('puntos').textContent = puntos;
-  document.getElementById('estado').textContent = '✅ ¡Muy bien!';
+  document.getElementById('estado').textContent = '✅ Muy bien!';
   document.getElementById('estado').className = 'estado ok';
-  hablarSerie(['Muy bien!', 'Lo lograste! Eres muy inteligente!'], 1600);
-  setTimeout(()=>{ indice++; iniciarMovimiento(); }, 3500);
+  hablarSerie(['Muy bien!', 'Lo lograste! Eres muy inteligente!'], 1800);
+  setTimeout(() => { indice++; iniciarMovimiento(); }, 3800);
 }
 
 function incorrecto() {
   esperando = false;
-  vidas = Math.max(0, vidas-1);
-  document.getElementById('vidas').textContent = '❤️'.repeat(vidas)+'🖤'.repeat(3-vidas);
-  document.getElementById('estado').textContent = '❌ ¡Vuelve a intentarlo!';
+  vidas = Math.max(0, vidas - 1);
+  document.getElementById('vidas').textContent = '❤️'.repeat(vidas) + '🖤'.repeat(3 - vidas);
+  document.getElementById('estado').textContent = '❌ Vuelve a intentarlo!';
   document.getElementById('estado').className = 'estado mal';
   hablarSerie(['No te preocupes!', 'Vuelve a intentarlo!', MOVIMIENTOS[indice].detalle], 1800);
   setTimeout(cuenta, 5500);
 }
 
 function finJuego() {
-  document.getElementById('barra').style.width='100%';
-  document.getElementById('mov-emoji').textContent='🏆';
-  document.getElementById('mov-texto').textContent='¡Juego completado!';
-  document.getElementById('estado').textContent=`🌟 ${puntos} puntos`;
-  document.getElementById('estado').className='estado ok';
-  hablarSerie(['Felicidades!', `Completaste todos los movimientos con ${puntos} puntos!`, 'Eres un campeon!'], 2000);
+  document.getElementById('barra').style.width = '100%';
+  document.getElementById('mov-emoji').textContent = '🏆';
+  document.getElementById('mov-texto').textContent = 'Juego completado!';
+  document.getElementById('estado').textContent = `🌟 ${puntos} puntos`;
+  document.getElementById('estado').className = 'estado ok';
+  hablarSerie([
+    'Felicidades!',
+    `Completaste todos los movimientos con ${puntos} puntos!`,
+    'Eres un campeon!'
+  ], 2200);
+}
+
+// ── BOTÓN INICIAR - activa la voz en Safari desde gesto del usuario ──
+function arrancar() {
+  if (juegoArrancado) return;
+  juegoArrancado = true;
+  document.getElementById('btn-iniciar').style.display = 'none';
+  document.getElementById('mov-texto').textContent = 'Cargando...';
+
+  // Primera palabra inmediata para desbloquear audio en Safari
+  hablar('Hola!', 0.8, 1.2);
+
+  setTimeout(() => {
+    hablarSerie([
+      'Bienvenido al juego Imitar Movimientos!',
+      'Yo te dire que movimiento debes hacer.',
+      'Cuando yo diga YA, hazlo frente a la camara!',
+      'Vamos a comenzar!'
+    ], 2200);
+    setTimeout(iniciarMovimiento, 10000);
+  }, 600);
 }
 
 // ── CÁMARA Y MEDIAPIPE ──
-function iniciarJuego() {
-  if(juegoIniciado) return;
-  juegoIniciado = true;
-  document.getElementById('loading-msg').textContent = '✅ Detector listo!';
-  document.getElementById('estado').textContent = '🎮 Preparando...';
-  hablarSerie([
-    'Bienvenido al juego Imitar Movimientos!',
-    'Yo te voy a decir que movimiento hacer.',
-    'Cuando yo diga YA, hazlo frente a la camara!',
-    'Vamos a comenzar!'
-  ], 2200);
-  setTimeout(iniciarMovimiento, 10000);
-}
-
 window.addEventListener('load', () => {
-  const video = document.getElementById('video');
+  const video  = document.getElementById('video');
   const canvas = document.getElementById('canvas');
-  const ctx = canvas.getContext('2d');
-  const badge = document.getElementById('hand-badge');
+  const ctx    = canvas.getContext('2d');
+  const badge  = document.getElementById('hand-badge');
 
-  navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}, audio:false})
+  // Pedir cámara
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
     .then(stream => {
       video.srcObject = stream;
       video.onloadedmetadata = () => {
-        canvas.width = video.videoWidth;
+        canvas.width  = video.videoWidth;
         canvas.height = video.videoHeight;
       };
     })
     .catch(() => {
-      document.getElementById('estado').textContent = '⚠️ Activa la cámara';
-      hablar('Por favor activa el permiso de la camara para jugar');
+      document.getElementById('estado').textContent = '⚠️ Activa la camara';
     });
 
-  // Esperar que MediaPipe cargue desde los scripts en <head>
+  // Esperar que MediaPipe cargue (scripts en <head>)
   let intentos = 0;
   const esperarMP = setInterval(() => {
     intentos++;
-    if(typeof Hands !== 'undefined' && typeof Camera !== 'undefined') {
+    if (typeof Hands !== 'undefined' && typeof Camera !== 'undefined') {
       clearInterval(esperarMP);
+      mpListo = true;
 
-      const hands = new Hands({locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${f}`});
-      hands.setOptions({maxNumHands:1, modelComplexity:0, minDetectionConfidence:0.65, minTrackingConfidence:0.5});
+      const hands = new Hands({
+        locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${f}`
+      });
+      hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 0,
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.55
+      });
 
       hands.onResults(results => {
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        if(results.multiHandLandmarks?.length > 0) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (results.multiHandLandmarks?.length > 0) {
           badge.classList.add('show');
           const lm = results.multiHandLandmarks[0];
-          if(typeof drawConnectors !== 'undefined') {
-            drawConnectors(ctx, lm, HAND_CONNECTIONS, {color:'#c084fc', lineWidth:3});
-            drawLandmarks(ctx, lm, {color:'#fff', lineWidth:1, radius:4});
+          if (typeof drawConnectors !== 'undefined') {
+            drawConnectors(ctx, lm, HAND_CONNECTIONS, { color: '#c084fc', lineWidth: 3 });
+            drawLandmarks(ctx, lm,  { color: '#fff', lineWidth: 1, radius: 4 });
           }
-          iniciarJuego();
-          if(esperando) {
+          if (esperando) {
             const ok = detectarGesto(lm);
-            if(ok && !detectadoOk){ detectadoOk=true; timerDet=setTimeout(correcto,700); }
-            else if(!ok){ detectadoOk=false; clearTimeout(timerDet); }
+            if (ok && !detectadoOk) {
+              detectadoOk = true;
+              timerDet = setTimeout(correcto, 800);
+            } else if (!ok) {
+              detectadoOk = false;
+              clearTimeout(timerDet);
+            }
           }
         } else {
           badge.classList.remove('show');
-          detectadoOk=false;
+          detectadoOk = false;
         }
       });
 
       const cam = new Camera(video, {
-        onFrame: async () => { await hands.send({image:video}); },
-        width:640, height:480
+        onFrame: async () => { await hands.send({ image: video }); },
+        width: 640, height: 480
       });
       cam.start();
 
-    } else if(intentos > 30) {
+    } else if (intentos > 40) {
       clearInterval(esperarMP);
-      document.getElementById('loading-msg').textContent = '❌ Error cargando. Recarga la página.';
+      document.getElementById('estado').textContent = '❌ Error. Recarga la pagina.';
     }
   }, 500);
 });
