@@ -35,7 +35,7 @@
   .progreso-card{width:100%;max-width:820px;background:rgba(255,255,255,.97);border-radius:20px;padding:14px 20px;margin-top:12px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
   .prog-header{display:flex;justify-content:space-between;font-size:.85rem;font-weight:700;color:#555;margin-bottom:8px}
   .barra-bg{background:#e5e7eb;border-radius:50px;height:12px;overflow:hidden}
-  .barra-fill{background:linear-gradient(135defer,#c084fc,#9333ea);height:100%;border-radius:50px;transition:width .5s}
+  .barra-fill{background:linear-gradient(135deg,#c084fc,#9333ea);height:100%;border-radius:50px;transition:width .5s}
   .hand-badge{position:absolute;top:8px;right:8px;background:#22c55e;color:white;font-size:.7rem;font-weight:900;padding:4px 10px;border-radius:50px;opacity:0;transition:opacity .3s}
   .hand-badge.show{opacity:1}
   #btn-iniciar{display:block;width:100%;max-width:820px;margin:14px 0 0;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;border:none;border-radius:20px;padding:18px;font-family:'Nunito',sans-serif;font-size:1.3rem;font-weight:900;cursor:pointer;box-shadow:0 4px 20px rgba(0,0,0,.3);animation:pulsebtn 1.2s infinite alternate}
@@ -82,135 +82,164 @@
 <button id="btn-iniciar" onclick="arrancar()">▶ Tocar aquí para comenzar!</button>
 
 <script>
-// ── SISTEMA DE COLA DE AUDIOS - funciona en iOS ──
-const AUDIOS = {};
-const NOMBRES = ['bienvenida_1','bienvenida_2','bienvenida_3','bienvenida_4',
-  'mov1_corto','mov1_largo','mov2_corto','mov2_largo','mov3_corto','mov3_largo',
-  'mov4_corto','mov4_largo','mov5_corto','mov5_largo',
-  'preparate','tres','dos','uno','ya',
-  'muy_bien','inteligente','no_preocupes','intenta','felicidades','campeon'];
+// ── SISTEMA DE AUDIO: cola simple, sin async/await, sin gaps ──
+// Cada audio se crea NUEVO cada vez (evita el problema de iOS con objetos reutilizados)
 
-// Precargar todos los audios al inicio
-function precargar() {
-  NOMBRES.forEach(n => {
-    const a = new Audio('/static/audio/' + n + '.mp3');
-    a.load();
-    AUDIOS[n] = a;
-  });
-}
+let _colaAudio = [];
+let _tocando = false;
 
-let colaAudios = [];
-let reproduciendo = false;
-let audioActual = null;
-
-function tocarAudio(nombre, callback) {
-  if (audioActual) {
-    audioActual.pause();
-    audioActual.currentTime = 0;
-  }
-  const a = new Audio('/static/audio/' + nombre + '.mp3');
-  audioActual = a;
-  a.onended = () => { audioActual = null; if(callback) callback(); };
-  a.onerror = () => { audioActual = null; if(callback) callback(); };
-  a.play().catch(() => { audioActual = null; if(callback) callback(); });
-}
-
-function procesarCola() {
-  if (reproduciendo || colaAudios.length === 0) return;
-  reproduciendo = true;
-  const { nombre, callback } = colaAudios.shift();
-  tocarAudio(nombre, () => {
-    reproduciendo = false;
-    if (colaAudios.length > 0) {
-      procesarCola();
-    } else {
-      if (callback) callback();
+function _siguienteAudio() {
+  if (_tocando || _colaAudio.length === 0) return;
+  _tocando = true;
+  const item = _colaAudio.shift();
+  const a = new Audio('/static/audio/' + item.nombre + '.mp3');
+  // Sin gap: empezar siguiente apenas termine
+  a.onended = function() {
+    _tocando = false;
+    if (_colaAudio.length > 0) {
+      _siguienteAudio();
+    } else if (item.cb) {
+      item.cb();
+    }
+  };
+  a.onerror = function() {
+    _tocando = false;
+    if (_colaAudio.length > 0) {
+      _siguienteAudio();
+    } else if (item.cb) {
+      item.cb();
+    }
+  };
+  a.play().catch(function() {
+    _tocando = false;
+    if (_colaAudio.length > 0) {
+      _siguienteAudio();
+    } else if (item.cb) {
+      item.cb();
     }
   });
 }
 
-function audio(nombre) {
-  colaAudios.push({ nombre, callback: null });
-  procesarCola();
+// Detener todo y limpiar cola
+function pararAudio() {
+  _colaAudio = [];
+  _tocando = false;
 }
 
-function audios(lista, alTerminar) {
-  colaAudios = [];
-  reproduciendo = false;
-  if (audioActual) { audioActual.pause(); audioActual = null; }
-  
-  lista.forEach((nombre, i) => {
-    if (i < lista.length - 1) {
-      colaAudios.push({ nombre, callback: null });
-    } else {
-      colaAudios.push({ nombre, callback: alTerminar || null });
-    }
+// Reproducir lista de audios, llamar cb al terminar el último
+function reproducir(lista, cb) {
+  pararAudio();
+  lista.forEach(function(nombre, i) {
+    _colaAudio.push({
+      nombre: nombre,
+      cb: i === lista.length - 1 ? (cb || null) : null
+    });
   });
-  procesarCola();
+  _siguienteAudio();
 }
 
+// ── MOVIMIENTOS ──
 const MOVIMIENTOS = [
-  { instruccion:"Muestra 4 dedos",        emoji:"4️⃣", tipo:"cuatro_dedos", corto:"mov1_corto", largo:"mov1_largo" },
-  { instruccion:"Haz un puño cerrado",     emoji:"✊",  tipo:"puno",         corto:"mov2_corto", largo:"mov2_largo" },
-  { instruccion:"Señala con un solo dedo", emoji:"☝️", tipo:"un_dedo",      corto:"mov3_corto", largo:"mov3_largo" },
-  { instruccion:"Muestra dos dedos en V",  emoji:"✌️", tipo:"dos_dedos",    corto:"mov4_corto", largo:"mov4_largo" },
-  { instruccion:"Abre toda la mano",       emoji:"🖐",  tipo:"palma_abierta",corto:"mov5_corto", largo:"mov5_largo" }
+  { instruccion:"Muestra 4 dedos",        emoji:"4️⃣", tipo:"cuatro_dedos",  corto:"mov1_corto", largo:"mov1_largo" },
+  { instruccion:"Haz un puño cerrado",     emoji:"✊",  tipo:"puno",          corto:"mov2_corto", largo:"mov2_largo" },
+  { instruccion:"Señala con un solo dedo", emoji:"☝️", tipo:"un_dedo",       corto:"mov3_corto", largo:"mov3_largo" },
+  { instruccion:"Muestra dos dedos en V",  emoji:"✌️", tipo:"dos_dedos",     corto:"mov4_corto", largo:"mov4_largo" },
+  { instruccion:"Abre toda la mano",       emoji:"🖐",  tipo:"palma_abierta", corto:"mov5_corto", largo:"mov5_largo" }
 ];
 
-let indice=0, puntos=0, vidas=3, esperando=false, detectadoOk=false, timerDet=null;
-let juegoArrancado=false, ocupado=false;
+let indice = 0, puntos = 0, vidas = 3;
+let esperando = false, detectadoOk = false;
+let timerIncorrecto = null, timerDeteccion = null;
+let juegoArrancado = false, ocupado = false;
 
+// ── DETECCIÓN DE GESTOS (mejorada) ──
 function detectarGesto(lm) {
-  const dedos = [
-    lm[8].y  < lm[6].y,
-    lm[12].y < lm[10].y,
-    lm[16].y < lm[14].y,
-    lm[20].y < lm[18].y
-  ];
+  // Dedos índice, medio, anular, meñique: extendidos si punta más arriba que nudillo
+  const idx   = lm[8].y  < lm[6].y;
+  const mid   = lm[12].y < lm[10].y;
+  const ring  = lm[16].y < lm[14].y;
+  const pink  = lm[20].y < lm[18].y;
+  const dedos = [idx, mid, ring, pink];
   const abiertos = dedos.filter(Boolean).length;
-  const pulgAbierto = lm[4].x < lm[3].x;
+
+  // Pulgar: comparar con base de la palma (punto 0) para ser más robusto
+  // En mano espejada (selfie), el pulgar abierto tiene X mayor que la base
+  const pulgX = lm[4].x;
+  const baseX = lm[17].x; // base meñique como referencia
+  const pulgAbierto = Math.abs(pulgX - lm[3].x) > 0.06; // pulgar separado del nudillo
+
   switch (MOVIMIENTOS[indice]?.tipo) {
-    case 'cuatro_dedos':  return abiertos === 4 && !pulgAbierto;
-    case 'puno':          return abiertos === 0 && !pulgAbierto;
-    case 'un_dedo':       return dedos[0] && abiertos === 1;
-    case 'dos_dedos':     return dedos[0] && dedos[1] && abiertos === 2;
-    case 'palma_abierta': return abiertos === 4 && pulgAbierto;
-    default: return false;
+    case 'cuatro_dedos':
+      // 4 dedos abiertos, pulgar no importa
+      return abiertos === 4;
+
+    case 'puno':
+      // Todos cerrados
+      return abiertos === 0 && !pulgAbierto;
+
+    case 'un_dedo':
+      // Solo índice abierto
+      return idx && !mid && !ring && !pink;
+
+    case 'dos_dedos':
+      // Solo índice y medio
+      return idx && mid && !ring && !pink;
+
+    case 'palma_abierta':
+      // Los 4 dedos abiertos Y pulgar separado
+      return abiertos === 4 && pulgAbierto;
+
+    default:
+      return false;
   }
 }
+
+// ── FLUJO DEL JUEGO ──
 
 function iniciarMovimiento() {
   if (indice >= MOVIMIENTOS.length) { finJuego(); return; }
   ocupado = false;
   esperando = false;
   detectadoOk = false;
+  clearTimeout(timerIncorrecto);
+  clearTimeout(timerDeteccion);
+
   const m = MOVIMIENTOS[indice];
   document.getElementById('mov-emoji').textContent = m.emoji;
   document.getElementById('mov-texto').textContent = m.instruccion;
-  document.getElementById('prog-texto').textContent = 'Movimiento ' + (indice+1) + ' de ' + MOVIMIENTOS.length;
+  document.getElementById('prog-texto').textContent = 'Movimiento ' + (indice + 1) + ' de ' + MOVIMIENTOS.length;
   document.getElementById('barra').style.width = ((indice / MOVIMIENTOS.length) * 100) + '%';
   document.getElementById('estado').textContent = '👀 Escucha bien...';
   document.getElementById('estado').className = 'estado';
   document.getElementById('cuenta').textContent = '👂';
-  audios([m.corto, m.largo], () => cuenta());
+
+  reproducir([m.corto, m.largo], function() { cuenta(); });
 }
 
 function cuenta() {
   ocupado = false;
+  esperando = false;
+  detectadoOk = false;
+  clearTimeout(timerIncorrecto);
+
   document.getElementById('estado').textContent = '⏳ Prepárate...';
   document.getElementById('cuenta').textContent = '...';
-  audios(['preparate'], () => {
+
+  // Reproducir preparate, luego 3, 2, 1, ya — actualizando pantalla en cada uno
+  reproducir(['preparate'], function() {
     document.getElementById('cuenta').textContent = '3';
-    audios(['tres'], () => {
+    reproducir(['tres'], function() {
       document.getElementById('cuenta').textContent = '2';
-      audios(['dos'], () => {
+      reproducir(['dos'], function() {
         document.getElementById('cuenta').textContent = '1';
-        audios(['uno'], () => {
+        reproducir(['uno'], function() {
           document.getElementById('cuenta').textContent = '¡YA!';
           document.getElementById('estado').textContent = '🖐 Hazlo ahora!';
-          audios(['ya'], () => {
+          reproducir(['ya'], function() {
             esperando = true;
-            timerDet = setTimeout(() => { if (esperando && !ocupado) incorrecto(); }, 5000);
+            timerIncorrecto = setTimeout(function() {
+              if (esperando && !ocupado) incorrecto();
+            }, 5000);
           });
         });
       });
@@ -222,12 +251,15 @@ function correcto() {
   if (ocupado) return;
   ocupado = true;
   esperando = false;
-  clearTimeout(timerDet);
+  clearTimeout(timerIncorrecto);
+  clearTimeout(timerDeteccion);
+
   puntos += 10;
   document.getElementById('puntos').textContent = puntos;
-  document.getElementById('estado').textContent = '✅ Muy bien!';
+  document.getElementById('estado').textContent = '✅ ¡Muy bien!';
   document.getElementById('estado').className = 'estado ok';
-  audios(['muy_bien', 'inteligente'], () => {
+
+  reproducir(['muy_bien', 'inteligente'], function() {
     indice++;
     iniciarMovimiento();
   });
@@ -237,89 +269,111 @@ function incorrecto() {
   if (ocupado) return;
   ocupado = true;
   esperando = false;
-  clearTimeout(timerDet);
+  clearTimeout(timerIncorrecto);
+  clearTimeout(timerDeteccion);
+
   vidas = Math.max(0, vidas - 1);
   document.getElementById('vidas').textContent = '❤️'.repeat(vidas) + '🖤'.repeat(3 - vidas);
-  document.getElementById('estado').textContent = '❌ Vuelve a intentarlo!';
+  document.getElementById('estado').textContent = '❌ ¡Vuelve a intentarlo!';
   document.getElementById('estado').className = 'estado mal';
-  audios(['no_preocupes', 'intenta', MOVIMIENTOS[indice].largo], () => cuenta());
+
+  reproducir(['no_preocupes', 'intenta', MOVIMIENTOS[indice].largo], function() {
+    cuenta();
+  });
 }
 
 function finJuego() {
+  clearTimeout(timerIncorrecto);
   document.getElementById('barra').style.width = '100%';
   document.getElementById('mov-emoji').textContent = '🏆';
-  document.getElementById('mov-texto').textContent = 'Juego completado!';
+  document.getElementById('mov-texto').textContent = '¡Juego completado!';
   document.getElementById('estado').textContent = puntos + ' puntos';
   document.getElementById('estado').className = 'estado ok';
-  audios(['felicidades', 'campeon'], null);
+  reproducir(['felicidades', 'campeon'], null);
 }
 
 function arrancar() {
   if (juegoArrancado) return;
   juegoArrancado = true;
   document.getElementById('btn-iniciar').style.display = 'none';
-  audios(['bienvenida_1','bienvenida_2','bienvenida_3','bienvenida_4'], () => iniciarMovimiento());
+  reproducir(['bienvenida_1', 'bienvenida_2', 'bienvenida_3', 'bienvenida_4'], function() {
+    iniciarMovimiento();
+  });
 }
 
-window.addEventListener('load', () => {
-  precargar();
+// ── CÁMARA Y MEDIAPIPE ──
+window.addEventListener('load', function() {
   const video  = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const ctx    = canvas.getContext('2d');
   const badge  = document.getElementById('hand-badge');
 
   navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
-    .then(stream => {
+    .then(function(stream) {
       video.srcObject = stream;
-      video.onloadedmetadata = () => {
+      video.onloadedmetadata = function() {
         canvas.width  = video.videoWidth;
         canvas.height = video.videoHeight;
       };
     })
-    .catch(() => {
-      document.getElementById('estado').textContent = 'Activa la camara para jugar';
+    .catch(function() {
+      document.getElementById('estado').textContent = 'Activa la cámara para jugar';
     });
 
   let intentos = 0;
-  const esperarMP = setInterval(() => {
+  const esperarMP = setInterval(function() {
     intentos++;
     if (typeof Hands !== 'undefined' && typeof Camera !== 'undefined') {
       clearInterval(esperarMP);
+
       const hands = new Hands({
-        locateFile: f => 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/' + f
+        locateFile: function(f) {
+          return 'https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/' + f;
+        }
       });
-      hands.setOptions({ maxNumHands:1, modelComplexity:0, minDetectionConfidence:0.7, minTrackingConfidence:0.55 });
-      hands.onResults(results => {
+      hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 0,
+        minDetectionConfidence: 0.65,
+        minTrackingConfidence: 0.5
+      });
+
+      hands.onResults(function(results) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        if (results.multiHandLandmarks?.length > 0) {
+        if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
           badge.classList.add('show');
           const lm = results.multiHandLandmarks[0];
           if (typeof drawConnectors !== 'undefined') {
-            drawConnectors(ctx, lm, HAND_CONNECTIONS, { color:'#c084fc', lineWidth:3 });
-            drawLandmarks(ctx, lm, { color:'#fff', lineWidth:1, radius:4 });
+            drawConnectors(ctx, lm, HAND_CONNECTIONS, { color: '#c084fc', lineWidth: 3 });
+            drawLandmarks(ctx, lm, { color: '#fff', lineWidth: 1, radius: 4 });
           }
           if (esperando && !ocupado) {
             const ok = detectarGesto(lm);
             if (ok && !detectadoOk) {
               detectadoOk = true;
-              setTimeout(() => correcto(), 800);
+              timerDeteccion = setTimeout(function() { correcto(); }, 700);
             } else if (!ok) {
               detectadoOk = false;
+              clearTimeout(timerDeteccion);
             }
           }
         } else {
           badge.classList.remove('show');
           detectadoOk = false;
+          clearTimeout(timerDeteccion);
         }
       });
+
       const cam = new Camera(video, {
-        onFrame: async () => { await hands.send({ image: video }); },
-        width:640, height:480
+        onFrame: async function() { await hands.send({ image: video }); },
+        width: 640,
+        height: 480
       });
       cam.start();
+
     } else if (intentos > 40) {
       clearInterval(esperarMP);
-      document.getElementById('estado').textContent = 'Error cargando. Recarga la pagina.';
+      document.getElementById('estado').textContent = 'Error cargando. Recarga la página.';
     }
   }, 500);
 });
