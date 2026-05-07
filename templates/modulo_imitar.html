@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Imitar Movimientos</title>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1640029074/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js" crossorigin="anonymous"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
   *{margin:0;padding:0;box-sizing:border-box}
@@ -25,7 +28,7 @@
   @keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-10px)}}
   .mov-texto{font-size:1.2rem;font-weight:900;color:#1e1b4b;line-height:1.25;max-width:200px}
   .cuenta{font-size:5rem;font-weight:900;color:#7c3aed;line-height:1;min-height:80px;display:flex;align-items:center;justify-content:center}
-  .estado{padding:10px 20px;border-radius:50px;font-weight:900;font-size:.9rem;color:white;background:linear-gradient(135deg,#a78bfa,#7c3aed);transition:background .3s}
+  .estado{padding:10px 20px;border-radius:50px;font-weight:900;font-size:.9rem;color:white;background:linear-gradient(135deg,#a78bfa,#7c3aed);transition:background .3s;text-align:center}
   .estado.ok{background:linear-gradient(135deg,#22c55e,#16a34a)}
   .estado.mal{background:linear-gradient(135deg,#ef4444,#dc2626)}
   .vidas{font-size:1.2rem}
@@ -33,8 +36,9 @@
   .prog-header{display:flex;justify-content:space-between;font-size:.85rem;font-weight:700;color:#555;margin-bottom:8px}
   .barra-bg{background:#e5e7eb;border-radius:50px;height:12px;overflow:hidden}
   .barra-fill{background:linear-gradient(135deg,#c084fc,#9333ea);height:100%;border-radius:50px;transition:width .5s}
-  .hand-detected{position:absolute;top:8px;right:8px;background:#22c55e;color:white;font-size:.7rem;font-weight:900;padding:4px 10px;border-radius:50px;opacity:0;transition:opacity .3s}
-  .hand-detected.show{opacity:1}
+  .hand-badge{position:absolute;top:8px;right:8px;background:#22c55e;color:white;font-size:.7rem;font-weight:900;padding:4px 10px;border-radius:50px;opacity:0;transition:opacity .3s}
+  .hand-badge.show{opacity:1}
+  .loading-msg{font-size:.85rem;color:#7c3aed;font-weight:700;margin-top:8px}
 </style>
 </head>
 <body>
@@ -54,93 +58,63 @@
     <div class="cam-wrap">
       <video id="video" autoplay playsinline muted></video>
       <canvas id="canvas"></canvas>
-      <div class="hand-detected" id="hand-badge">✋ Mano detectada</div>
+      <div class="hand-badge" id="hand-badge">✋ Mano detectada</div>
     </div>
+    <div class="loading-msg" id="loading-msg">⏳ Cargando detector de manos...</div>
   </div>
 
   <div class="card instruccion-card">
     <div class="mov-emoji" id="mov-emoji">🤖</div>
-    <div class="mov-texto" id="mov-texto">Cargando juego...</div>
-    <div class="cuenta" id="cuenta">-</div>
-    <div class="estado" id="estado">🎮 Preparando...</div>
+    <div class="mov-texto" id="mov-texto">Preparando juego...</div>
+    <div class="cuenta" id="cuenta">👂</div>
+    <div class="estado" id="estado">🎮 Cargando...</div>
   </div>
 </div>
 
 <div class="progreso-card">
   <div class="prog-header">
     <span id="prog-texto">Movimiento 0 de 5</span>
-    <span id="prog-estrellas">⭐⭐⭐</span>
+    <span>⭐⭐⭐</span>
   </div>
   <div class="barra-bg"><div class="barra-fill" id="barra" style="width:0%"></div></div>
 </div>
 
 <script>
 const MOVIMIENTOS = [
-  {
-    instruccion: "Levanta la mano bien arriba",
-    detalle: "Sube tu mano lo más alto que puedas... así como tocando el cielo!",
-    emoji: "🙋",
-    tipo: "mano_arriba"
-  },
-  {
-    instruccion: "Muestra todos los dedos abiertos",
-    detalle: "Abre tu mano bien grande... todos los dedos estirados!",
-    emoji: "🖐",
-    tipo: "palma_abierta"
-  },
-  {
-    instruccion: "Haz un puño cerrado",
-    detalle: "Cierra tu mano fuerte... aprieta todos los dedos juntos!",
-    emoji: "✊",
-    tipo: "puno"
-  },
-  {
-    instruccion: "Señala con un solo dedo hacia arriba",
-    detalle: "Levanta solo el dedo índice... el dedito que usas para señalar!",
-    emoji: "☝️",
-    tipo: "un_dedo"
-  },
-  {
-    instruccion: "Muestra dos dedos en V de victoria",
-    detalle: "Levanta dos dedos formando una V... como señal de victoria!",
-    emoji: "✌️",
-    tipo: "dos_dedos"
-  }
+  {instruccion:"Levanta la mano bien arriba", detalle:"Sube tu mano lo más alto que puedas, así como tocando el cielo!", emoji:"🙋", tipo:"mano_arriba"},
+  {instruccion:"Muestra todos los dedos abiertos", detalle:"Abre tu mano bien grande, todos los dedos estirados!", emoji:"🖐", tipo:"palma_abierta"},
+  {instruccion:"Haz un puño cerrado", detalle:"Cierra tu mano fuerte, aprieta todos los dedos juntos!", emoji:"✊", tipo:"puno"},
+  {instruccion:"Señala con un solo dedo hacia arriba", detalle:"Levanta solo el dedo índice, el dedito que usas para señalar!", emoji:"☝️", tipo:"un_dedo"},
+  {instruccion:"Muestra dos dedos en V de victoria", detalle:"Levanta dos dedos formando una V, como señal de victoria!", emoji:"✌️", tipo:"dos_dedos"}
 ];
 
-let indice=0, puntos=0, vidas=3, esperando=false, detectadoOk=false, timerDet=null;
+let indice=0, puntos=0, vidas=3, esperando=false, detectadoOk=false, timerDet=null, juegoIniciado=false;
 
-// ── VOZ MEJORADA PARA NIÑOS ──
-function hablar(texto, velocidad=0.78, tono=1.2) {
-  speechSynthesis.cancel();
+// ── VOZ ──
+function hablar(texto, vel=0.78, tono=1.2) {
+  window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(texto);
-  u.lang = 'es-ES';
-  u.rate = velocidad;
-  u.pitch = tono;
-  u.volume = 1;
-  const voices = speechSynthesis.getVoices();
-  const esp = voices.find(v => v.lang.startsWith('es') && v.name.toLowerCase().includes('female'))
-           || voices.find(v => v.lang.startsWith('es'));
-  if (esp) u.voice = esp;
-  speechSynthesis.speak(u);
+  u.lang = 'es-ES'; u.rate = vel; u.pitch = tono; u.volume = 1;
+  const vs = window.speechSynthesis.getVoices();
+  const esp = vs.find(v=>v.lang.startsWith('es') && v.name.toLowerCase().includes('female')) || vs.find(v=>v.lang.startsWith('es'));
+  if(esp) u.voice = esp;
+  window.speechSynthesis.speak(u);
 }
 
-function hablarConPausa(frases, delay=1200) {
-  if (!frases.length) return;
-  hablar(frases[0]);
-  frases.slice(1).forEach((f, i) => {
-    setTimeout(() => hablar(f), delay * (i+1));
-  });
+function hablarSerie(frases, delay=1800) {
+  frases.forEach((f,i) => setTimeout(() => hablar(f), i * delay));
 }
 
-// ── DETECCIÓN DE GESTOS ──
+// ── GESTOS ──
 function detectarGesto(lm) {
-  const punta  = [lm[8],  lm[12], lm[16], lm[20]];
-  const media  = [lm[6],  lm[10], lm[14], lm[18]];
-  const abiertos = punta.filter((p,i) => p.y < media[i].y).length;
+  const abiertos = [
+    lm[8].y  < lm[6].y,
+    lm[12].y < lm[10].y,
+    lm[16].y < lm[14].y,
+    lm[20].y < lm[18].y
+  ].filter(Boolean).length;
   const pulgAbierto = lm[4].x < lm[3].x;
-  const muñeca = lm[0].y;
-  const manoArriba = muñeca > 0.65;
+  const manoArriba = lm[0].y > 0.65;
 
   switch(MOVIMIENTOS[indice]?.tipo) {
     case 'mano_arriba':   return manoArriba;
@@ -152,9 +126,9 @@ function detectarGesto(lm) {
   }
 }
 
-// ── LÓGICA DEL JUEGO ──
+// ── JUEGO ──
 function iniciarMovimiento() {
-  if (indice >= MOVIMIENTOS.length) { finJuego(); return; }
+  if(indice >= MOVIMIENTOS.length){ finJuego(); return; }
   const m = MOVIMIENTOS[indice];
   document.getElementById('mov-emoji').textContent = m.emoji;
   document.getElementById('mov-texto').textContent = m.instruccion;
@@ -164,37 +138,29 @@ function iniciarMovimiento() {
   document.getElementById('estado').className = 'estado';
   document.getElementById('cuenta').textContent = '👂';
   esperando = false; detectadoOk = false;
-
-  // Primero dice la instrucción corta, luego el detalle
-  hablarConPausa([
-    m.instruccion,
-    m.detalle
-  ], 1800);
-
-  setTimeout(cuenta, 5000);
+  hablarSerie([m.instruccion, m.detalle], 2000);
+  setTimeout(cuenta, 5500);
 }
 
 function cuenta() {
+  hablar('Prepárate', 0.75, 1.2);
   document.getElementById('estado').textContent = '⏳ Prepárate...';
-  hablar('Prepárate...', 0.75, 1.2);
-
-  setTimeout(() => {
-    let n = 3;
+  setTimeout(()=>{
+    let n=3;
     document.getElementById('cuenta').textContent = n;
     hablar('3', 0.7, 1.3);
-
-    const iv = setInterval(() => {
+    const iv = setInterval(()=>{
       n--;
-      if (n > 0) {
+      if(n>0){
         document.getElementById('cuenta').textContent = n;
         hablar(String(n), 0.7, 1.3);
       } else {
         document.getElementById('cuenta').textContent = '¡YA!';
         document.getElementById('estado').textContent = '🖐 ¡Haz el movimiento ahora!';
-        hablar('¡Ya! ¡Hazlo ahora!', 0.8, 1.3);
+        hablar('Ya! Hazlo ahora!', 0.8, 1.3);
         clearInterval(iv);
         esperando = true;
-        setTimeout(() => { if (esperando) incorrecto(); }, 5000);
+        setTimeout(()=>{ if(esperando) incorrecto(); }, 5000);
       }
     }, 1100);
   }, 1200);
@@ -206,116 +172,106 @@ function correcto() {
   document.getElementById('puntos').textContent = puntos;
   document.getElementById('estado').textContent = '✅ ¡Muy bien!';
   document.getElementById('estado').className = 'estado ok';
-
-  const frases = [
-    '¡Muy bien!',
-    '¡Lo lograste! Eres muy inteligente!',
-    indice < MOVIMIENTOS.length - 1 ? 'Vamos al siguiente movimiento!' : ''
-  ].filter(Boolean);
-  hablarConPausa(frases, 1500);
-
-  setTimeout(() => { indice++; iniciarMovimiento(); }, 3500);
+  hablarSerie(['Muy bien!', 'Lo lograste! Eres muy inteligente!'], 1600);
+  setTimeout(()=>{ indice++; iniciarMovimiento(); }, 3500);
 }
 
 function incorrecto() {
   esperando = false;
-  vidas = Math.max(0, vidas - 1);
-  document.getElementById('vidas').textContent = '❤️'.repeat(vidas) + '🖤'.repeat(3-vidas);
+  vidas = Math.max(0, vidas-1);
+  document.getElementById('vidas').textContent = '❤️'.repeat(vidas)+'🖤'.repeat(3-vidas);
   document.getElementById('estado').textContent = '❌ ¡Vuelve a intentarlo!';
   document.getElementById('estado').className = 'estado mal';
-
-  hablarConPausa([
-    'Ese no es el movimiento correcto.',
-    'No te preocupes... vuelve a intentarlo!',
-    MOVIMIENTOS[indice].detalle
-  ], 1800);
-
+  hablarSerie(['No te preocupes!', 'Vuelve a intentarlo!', MOVIMIENTOS[indice].detalle], 1800);
   setTimeout(cuenta, 5500);
 }
 
 function finJuego() {
-  document.getElementById('barra').style.width = '100%';
-  document.getElementById('mov-emoji').textContent = '🏆';
-  document.getElementById('mov-texto').textContent = '¡Juego completado!';
-  document.getElementById('estado').textContent = `🌟 ${puntos} puntos`;
-  document.getElementById('estado').className = 'estado ok';
-
-  hablarConPausa([
-    '¡Felicidades!',
-    `¡Completaste todos los movimientos con ${puntos} puntos!`,
-    '¡Eres un campeón!'
-  ], 2000);
+  document.getElementById('barra').style.width='100%';
+  document.getElementById('mov-emoji').textContent='🏆';
+  document.getElementById('mov-texto').textContent='¡Juego completado!';
+  document.getElementById('estado').textContent=`🌟 ${puntos} puntos`;
+  document.getElementById('estado').className='estado ok';
+  hablarSerie(['Felicidades!', `Completaste todos los movimientos con ${puntos} puntos!`, 'Eres un campeon!'], 2000);
 }
 
-// ── MEDIAPIPE HANDS ──
-async function initCamera() {
+// ── CÁMARA Y MEDIAPIPE ──
+function iniciarJuego() {
+  if(juegoIniciado) return;
+  juegoIniciado = true;
+  document.getElementById('loading-msg').textContent = '✅ Detector listo!';
+  document.getElementById('estado').textContent = '🎮 Preparando...';
+  hablarSerie([
+    'Bienvenido al juego Imitar Movimientos!',
+    'Yo te voy a decir que movimiento hacer.',
+    'Cuando yo diga YA, hazlo frente a la camara!',
+    'Vamos a comenzar!'
+  ], 2200);
+  setTimeout(iniciarMovimiento, 10000);
+}
+
+window.addEventListener('load', () => {
   const video = document.getElementById('video');
   const canvas = document.getElementById('canvas');
   const ctx = canvas.getContext('2d');
   const badge = document.getElementById('hand-badge');
 
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'},audio:false});
-    video.srcObject = stream;
-    await new Promise(r => video.onloadedmetadata = r);
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-  } catch(e) {
-    document.getElementById('estado').textContent = '⚠️ Activa la cámara';
-    hablar('Por favor activa el permiso de la cámara para jugar', 0.8, 1.1);
-    return;
-  }
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}, audio:false})
+    .then(stream => {
+      video.srcObject = stream;
+      video.onloadedmetadata = () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+      };
+    })
+    .catch(() => {
+      document.getElementById('estado').textContent = '⚠️ Activa la cámara';
+      hablar('Por favor activa el permiso de la camara para jugar');
+    });
 
-  const {Hands} = await import('https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js');
-  const {Camera} = await import('https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1640029074/camera_utils.js');
-  const {drawConnectors, drawLandmarks} = await import('https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js');
-  const {HAND_CONNECTIONS} = await import('https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js');
+  // Esperar que MediaPipe cargue desde los scripts en <head>
+  let intentos = 0;
+  const esperarMP = setInterval(() => {
+    intentos++;
+    if(typeof Hands !== 'undefined' && typeof Camera !== 'undefined') {
+      clearInterval(esperarMP);
 
-  const hands = new Hands({locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${f}`});
-  hands.setOptions({maxNumHands:1, modelComplexity:0, minDetectionConfidence:0.65, minTrackingConfidence:0.5});
+      const hands = new Hands({locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/${f}`});
+      hands.setOptions({maxNumHands:1, modelComplexity:0, minDetectionConfidence:0.65, minTrackingConfidence:0.5});
 
-  hands.onResults(results => {
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    if (results.multiHandLandmarks?.length > 0) {
-      badge.classList.add('show');
-      const lm = results.multiHandLandmarks[0];
-      drawConnectors(ctx, lm, HAND_CONNECTIONS, {color:'#c084fc', lineWidth:3});
-      drawLandmarks(ctx, lm, {color:'#fff', lineWidth:1, radius:4});
-
-      if (esperando) {
-        const ok = detectarGesto(lm);
-        if (ok && !detectadoOk) {
-          detectadoOk = true;
-          timerDet = setTimeout(correcto, 700);
-        } else if (!ok) {
-          detectadoOk = false;
-          clearTimeout(timerDet);
+      hands.onResults(results => {
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        if(results.multiHandLandmarks?.length > 0) {
+          badge.classList.add('show');
+          const lm = results.multiHandLandmarks[0];
+          if(typeof drawConnectors !== 'undefined') {
+            drawConnectors(ctx, lm, HAND_CONNECTIONS, {color:'#c084fc', lineWidth:3});
+            drawLandmarks(ctx, lm, {color:'#fff', lineWidth:1, radius:4});
+          }
+          iniciarJuego();
+          if(esperando) {
+            const ok = detectarGesto(lm);
+            if(ok && !detectadoOk){ detectadoOk=true; timerDet=setTimeout(correcto,700); }
+            else if(!ok){ detectadoOk=false; clearTimeout(timerDet); }
+          }
+        } else {
+          badge.classList.remove('show');
+          detectadoOk=false;
         }
-      }
-    } else {
-      badge.classList.remove('show');
-      detectadoOk = false;
+      });
+
+      const cam = new Camera(video, {
+        onFrame: async () => { await hands.send({image:video}); },
+        width:640, height:480
+      });
+      cam.start();
+
+    } else if(intentos > 30) {
+      clearInterval(esperarMP);
+      document.getElementById('loading-msg').textContent = '❌ Error cargando. Recarga la página.';
     }
-  });
-
-  const cam = new Camera(video, {
-    onFrame: async () => { await hands.send({image:video}); },
-    width:640, height:480
-  });
-  await cam.start();
-
-  setTimeout(() => {
-    hablarConPausa([
-      'Bienvenido al juego Imitar Movimientos!',
-      'Yo te voy a decir qué movimiento hacer.',
-      'Cuando yo diga YA... hazlo frente a la cámara!',
-      'Vamos a comenzar!'
-    ], 2000);
-    setTimeout(iniciarMovimiento, 9000);
-  }, 1000);
-}
-
-initCamera();
+  }, 500);
+});
 </script>
 </body>
 </html>
