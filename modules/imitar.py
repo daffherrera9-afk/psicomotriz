@@ -1,29 +1,4 @@
-import threading
-import os
-from gtts import gTTS
-import pygame
-
-pygame.mixer.init()
-
-AUDIO_DIR = os.path.join(os.path.dirname(__file__), '..', 'static', 'audio')
-os.makedirs(AUDIO_DIR, exist_ok=True)
-
-def hablar(texto, archivo_id="voz"):
-    def _hablar():
-        try:
-            ruta = os.path.join(AUDIO_DIR, f"{archivo_id}.mp3")
-            tts = gTTS(text=texto, lang='es', slow=False)
-            tts.save(ruta)
-            pygame.mixer.music.load(ruta)
-            pygame.mixer.music.play()
-            while pygame.mixer.music.get_busy():
-                pygame.time.Clock().tick(10)
-        except Exception as e:
-            print(f"Error de voz: {e}")
-    t = threading.Thread(target=_hablar)
-    t.daemon = False
-    t.start()
-    t.join(timeout=10)
+from voz import hablar
 
 movimientos = [
     {"id": 1, "instruccion": "Toca tu cabeza",    "emoji": "🤚", "descripcion": "Lleva tu mano a la cabeza",  "parte_cuerpo": "cabeza"},
@@ -34,36 +9,22 @@ movimientos = [
 ]
 
 def dar_instrucciones():
-    hablar("Bienvenido al juego Imitar Movimientos. Escucha cada instrucción, espera la cuenta regresiva y haz el movimiento correcto. ¡Vamos allá!", "bienvenida")
+    hablar("Bienvenido al juego Imitar Movimientos. Escucha cada instruccion, espera la cuenta regresiva y haz el movimiento correcto. Vamos alla!")
 
 def anunciar_movimiento(instruccion):
-    hablar(f"Ahora debes: {instruccion}. ¡Prepárate!", f"mov_{instruccion[:10]}")
+    hablar(f"Ahora debes: {instruccion}. Preparate!")
 
 def contar(numero):
-    try:
-        ruta = os.path.join(AUDIO_DIR, f"numero_{numero}.mp3")
-        pygame.mixer.music.load(ruta)
-        pygame.mixer.music.play()
-        while pygame.mixer.music.get_busy():
-            pygame.time.Clock().tick(10)
-    except Exception as e:
-        print(f"Error contando: {e}")
+    hablar(str(numero))
 
 def ya():
-    try:
-        ruta = os.path.join(AUDIO_DIR, "ya.mp3")
-        pygame.mixer.music.load(ruta)
-        pygame.mixer.music.play()
-        while pygame.mixer.music.get_busy():
-            pygame.time.Clock().tick(10)
-    except Exception as e:
-        print(f"Error ya: {e}")
+    hablar("Ya!")
 
 def resultado_correcto(instruccion):
-    hablar(f"¡Lo hiciste muy bien! {instruccion} ¡Correcto!", "correcto")
+    hablar(f"Lo hiciste muy bien! Correcto!")
 
 def resultado_incorrecto():
-    hablar("Ese es el movimiento incorrecto. ¡Vuelve a intentarlo!", "incorrecto")
+    hablar("Ese es el movimiento incorrecto. Vuelve a intentarlo!")
 
 def juego_completado():
-    hablar("¡Felicidades! Completaste todos los movimientos. ¡Eres increíble!", "completado")
+    hablar("Felicidades! Completaste todos los movimientos. Eres increible!")

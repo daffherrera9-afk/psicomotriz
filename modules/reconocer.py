@@ -1,29 +1,4 @@
-import threading
-import os
-from gtts import gTTS
-import pygame
-
-pygame.mixer.init()
-
-AUDIO_DIR = os.path.join(os.path.dirname(__file__), '..', 'static', 'audio')
-os.makedirs(AUDIO_DIR, exist_ok=True)
-
-def hablar(texto, archivo_id="voz"):
-    def _hablar():
-        try:
-            ruta = os.path.join(AUDIO_DIR, f"{archivo_id}.mp3")
-            tts = gTTS(text=texto, lang='es', slow=False)
-            tts.save(ruta)
-            pygame.mixer.music.load(ruta)
-            pygame.mixer.music.play()
-            while pygame.mixer.music.get_busy():
-                pygame.time.Clock().tick(10)
-        except Exception as e:
-            print(f"Error de voz: {e}")
-    t = threading.Thread(target=_hablar)
-    t.daemon = False
-    t.start()
-    t.join(timeout=10)  # ← Espera hasta 10 segundos a que termine
+from voz import hablar
 
 animales = [
     {"id": 1, "nombre": "Perro",     "emoji": "🐶", "sombra": "🐕", "color_fondo": "#FEF3C7"},
@@ -42,22 +17,22 @@ colores = [
 ]
 
 def dar_instrucciones_animales():
-    hablar("Bienvenido a Mover y Reconocer. Arrastra cada animal hacia su sombra correcta. ¡Vamos allá!", "instruccion_animales")
+    hablar("Bienvenido a Mover y Reconocer. Arrastra cada animal hacia su sombra correcta. Vamos alla!")
 
 def dar_instrucciones_colores():
-    hablar("Ahora vamos con los colores. Arrastra cada color hacia su lugar correcto. ¡Tú puedes!", "instruccion_colores")
+    hablar("Ahora vamos con los colores. Arrastra cada color hacia su lugar correcto. Tu puedes!")
 
 def animal_correcto(nombre):
-    hablar(f"¡Muy bien! Ese es el animal correcto. Es un {nombre}. ¡Excelente!", f"animal_{nombre}")
+    hablar(f"Muy bien! Ese es el animal correcto. Es un {nombre}. Excelente!")
 
 def animal_incorrecto():
-    hablar("Ese no es el lugar correcto. ¡Inténtalo de nuevo!", "animal_incorrecto")
+    hablar("Ese no es el lugar correcto. Intentalo de nuevo!")
 
 def color_correcto(nombre):
-    hablar(f"¡Correcto! Ese es el color {nombre}. ¡Muy bien hecho!", f"color_{nombre}")
+    hablar(f"Correcto! Ese es el color {nombre}. Muy bien hecho!")
 
 def color_incorrecto():
-    hablar("Ese color no va ahí. ¡Vuelve a intentarlo!", "color_incorrecto")
+    hablar("Ese color no va ahi. Vuelve a intentarlo!")
 
 def juego_completado():
-    hablar("¡Felicidades! Completaste todos los animales y colores. ¡Eres un campeón!", "completado")
+    hablar("Felicidades! Completaste todos los animales y colores. Eres un campeon!")
