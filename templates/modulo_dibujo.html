@@ -4,243 +4,206 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dibujo con Movimiento</title>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
   *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'Nunito',sans-serif;background:linear-gradient(135deg,#1a0533,#0d1b4b,#0a2a3a);min-height:100vh;display:flex;align-items:center;justify-content:center}
-  .stars{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
-  .star{position:absolute;background:white;border-radius:50%;animation:twinkle 2s infinite alternate}
-  @keyframes twinkle{from{opacity:.2}to{opacity:1}}
-  .container{position:relative;z-index:10;width:100%;max-width:960px;padding:16px}
+  body{font-family:'Nunito',sans-serif;background:#000;min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow:hidden}
 
-  /* HEADER */
-  .header{background:rgba(255,255,255,.97);border-radius:24px;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
-  .header-left{display:flex;align-items:center;gap:10px}
-  .back-btn{background:#f3f4f6;border:none;border-radius:50px;padding:7px 14px;font-family:'Nunito',sans-serif;font-weight:700;color:#555;cursor:pointer;font-size:.85rem;text-decoration:none}
-  .header h2{font-size:1rem;font-weight:900;color:#d97706}
-  .header-right{display:flex;gap:8px}
-  .btn-header{display:flex;align-items:center;gap:6px;border:none;border-radius:50px;padding:8px 16px;font-family:'Nunito',sans-serif;font-weight:900;font-size:.85rem;cursor:pointer}
-  .btn-limpiar{background:#fee2e2;color:#dc2626}
-  .btn-guardar{background:linear-gradient(135deg,#fbbf24,#d97706);color:white}
+  .header{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(0,0,0,.7);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(10px)}
+  .back-btn{background:rgba(255,255,255,.2);border:none;border-radius:50px;padding:7px 14px;font-family:'Nunito',sans-serif;font-weight:700;color:white;cursor:pointer;font-size:.85rem;text-decoration:none}
+  .header h2{font-size:1rem;font-weight:900;color:white}
+  .header-btns{display:flex;gap:8px}
+  .btn-limpiar{background:rgba(239,68,68,.8);border:none;border-radius:50px;padding:7px 14px;font-family:'Nunito',sans-serif;font-weight:900;color:white;cursor:pointer;font-size:.85rem}
+  .btn-guardar{background:rgba(251,191,36,.9);border:none;border-radius:50px;padding:7px 14px;font-family:'Nunito',sans-serif;font-weight:900;color:white;cursor:pointer;font-size:.85rem}
 
-  /* ÁREA PRINCIPAL */
-  .main-area{display:grid;grid-template-columns:80px 1fr;gap:14px;align-items:start}
+  .canvas-container{position:relative;width:100vw;height:100vh}
+  video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+  #canvas-draw{position:absolute;top:0;left:0;width:100%;height:100%;transform:scaleX(-1)}
+  #canvas-mediapipe{position:absolute;top:0;left:0;width:100%;height:100%;transform:scaleX(-1)}
 
-  /* PANEL COLORES */
-  .colores-panel{background:rgba(255,255,255,.97);border-radius:20px;padding:12px 8px;box-shadow:0 8px 30px rgba(0,0,0,.3);display:flex;flex-direction:column;gap:8px;align-items:center}
-  .colores-panel p{font-size:.65rem;font-weight:900;color:#666;text-transform:uppercase;letter-spacing:1px;text-align:center;margin-bottom:4px}
-  .color-btn{width:44px;height:44px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:transform .15s,border-color .15s}
-  .color-btn:hover{transform:scale(1.15)}
-  .color-btn.activo{border-color:#1e1b4b;transform:scale(1.2)}
-  .grosor-label{font-size:.65rem;font-weight:900;color:#666;text-transform:uppercase;margin-top:8px}
-  .grosor-btn{width:44px;height:44px;border-radius:50%;border:2px solid #e5e7eb;background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .15s}
-  .grosor-btn.activo{border-color:#7c3aed;background:#ede9fe}
-  .grosor-dot{background:#333;border-radius:50%}
+  .colores-panel{position:fixed;left:12px;top:50%;transform:translateY(-50%);z-index:100;display:flex;flex-direction:column;gap:8px;align-items:center;background:rgba(0,0,0,.6);padding:10px 8px;border-radius:20px;backdrop-filter:blur(10px)}
+  .color-btn{width:40px;height:40px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:transform .15s,border-color .15s}
+  .color-btn:hover{transform:scale(1.2)}
+  .color-btn.activo{border-color:white;transform:scale(1.2)}
+  .grosor-panel{position:fixed;right:12px;top:50%;transform:translateY(-50%);z-index:100;display:flex;flex-direction:column;gap:8px;align-items:center;background:rgba(0,0,0,.6);padding:10px 8px;border-radius:20px;backdrop-filter:blur(10px)}
+  .grosor-btn{width:40px;height:40px;border-radius:50%;border:2px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:border-color .15s}
+  .grosor-btn.activo{border-color:white;background:rgba(255,255,255,.3)}
+  .grosor-dot{background:white;border-radius:50%}
 
-  /* LIENZO */
-  .lienzo-wrap{background:rgba(255,255,255,.97);border-radius:20px;padding:16px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
-  .lienzo-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-  .lienzo-header span{font-size:.85rem;font-weight:700;color:#666}
-  .lienzo-estado{display:flex;align-items:center;gap:6px;font-size:.85rem;font-weight:700;color:#d97706}
-  canvas{border-radius:16px;background:white;cursor:crosshair;display:block;width:100%;border:2px dashed #e5e7eb;touch-action:none}
-
-  /* BARRA HERRAMIENTAS */
-  .herramientas{display:flex;gap:8px;margin-top:12px;justify-content:center;flex-wrap:wrap}
-  .btn-tool{display:flex;align-items:center;gap:6px;border:none;border-radius:50px;padding:8px 16px;font-family:'Nunito',sans-serif;font-weight:900;font-size:.85rem;cursor:pointer;transition:transform .15s}
-  .btn-tool:hover{transform:translateY(-2px)}
-  .btn-borrador{background:#f3f4f6;color:#555}
-  .btn-borrador.activo{background:#fef3c7;color:#d97706;border:2px solid #d97706}
-  .btn-deshacer{background:#ede9fe;color:#7c3aed}
-  .btn-color-fondo{background:#dbeafe;color:#2563eb}
+  .instruccion{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);color:white;padding:10px 24px;border-radius:50px;font-weight:700;font-size:.9rem;backdrop-filter:blur(10px);z-index:100;text-align:center}
+  .dedo-indicador{position:absolute;width:20px;height:20px;border-radius:50%;border:3px solid white;pointer-events:none;transform:translate(-50%,-50%);z-index:200;transition:left .05s,top .05s}
 </style>
 </head>
 <body>
-<div class="stars" id="stars"></div>
 
-<div class="container">
-  <!-- HEADER -->
-  <div class="header">
-    <div class="header-left">
-      <a href="/" class="back-btn">← Menú</a>
-      <h2>🎨 Dibujo con Movimiento</h2>
-    </div>
-    <div class="header-right">
-      <button class="btn-header btn-limpiar" onclick="limpiarLienzo()">🗑️ Limpiar</button>
-      <button class="btn-header btn-guardar" onclick="guardarDibujo()">💾 Guardar</button>
-    </div>
-  </div>
-
-  <!-- ÁREA PRINCIPAL -->
-  <div class="main-area">
-
-    <!-- PANEL DE COLORES -->
-    <div class="colores-panel">
-      <p>🎨 Color</p>
-      <button class="color-btn activo" style="background:#ef4444" onclick="elegirColor('#ef4444','rojo')" title="Rojo"></button>
-      <button class="color-btn" style="background:#f97316" onclick="elegirColor('#f97316','naranja')" title="Naranja"></button>
-      <button class="color-btn" style="background:#eab308" onclick="elegirColor('#eab308','amarillo')" title="Amarillo"></button>
-      <button class="color-btn" style="background:#22c55e" onclick="elegirColor('#22c55e','verde')" title="Verde"></button>
-      <button class="color-btn" style="background:#3b82f6" onclick="elegirColor('#3b82f6','azul')" title="Azul"></button>
-      <button class="color-btn" style="background:#a855f7" onclick="elegirColor('#a855f7','morado')" title="Morado"></button>
-      <button class="color-btn" style="background:#ec4899" onclick="elegirColor('#ec4899','rosado')" title="Rosado"></button>
-      <button class="color-btn" style="background:#ffffff;border:2px solid #e5e7eb" onclick="elegirColor('#ffffff','blanco')" title="Blanco"></button>
-      <button class="color-btn" style="background:#1e1b4b" onclick="elegirColor('#1e1b4b','negro')" title="Negro"></button>
-
-      <p class="grosor-label">✏️ Grosor</p>
-      <button class="grosor-btn activo" onclick="elegirGrosor(4,this)" title="Fino">
-        <div class="grosor-dot" style="width:4px;height:4px"></div>
-      </button>
-      <button class="grosor-btn" onclick="elegirGrosor(10,this)" title="Medio">
-        <div class="grosor-dot" style="width:10px;height:10px"></div>
-      </button>
-      <button class="grosor-btn" onclick="elegirGrosor(20,this)" title="Grueso">
-        <div class="grosor-dot" style="width:18px;height:18px"></div>
-      </button>
-    </div>
-
-    <!-- LIENZO -->
-    <div class="lienzo-wrap">
-      <div class="lienzo-header">
-        <span id="color-actual">🔴 Color: Rojo</span>
-        <span class="lienzo-estado" id="lienzo-estado">✏️ Dibujando...</span>
-      </div>
-      <canvas id="lienzo" height="420"></canvas>
-      <div class="herramientas">
-        <button class="btn-tool btn-borrador" id="btn-borrador" onclick="toggleBorrador()">🧹 Borrador</button>
-        <button class="btn-tool btn-deshacer" onclick="deshacer()">↩️ Deshacer</button>
-        <button class="btn-tool btn-color-fondo" onclick="cambiarFondo()">🖼️ Fondo</button>
-      </div>
-    </div>
-
+<!-- HEADER -->
+<div class="header">
+  <a href="/" class="back-btn">← Menú</a>
+  <h2>🎨 Dibujo con Movimiento</h2>
+  <div class="header-btns">
+    <button class="btn-limpiar" onclick="limpiar()">🗑️ Limpiar</button>
+    <button class="btn-guardar" onclick="guardar()">💾 Guardar</button>
   </div>
 </div>
 
-<script>
-  // Estrellas
-  const sc=document.getElementById('stars');
-  for(let i=0;i<50;i++){
-    const s=document.createElement('div');s.className='star';
-    const sz=Math.random()*3+1;
-    s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;animation-delay:${Math.random()*3}s;animation-duration:${1.5+Math.random()*2}s;`;
-    sc.appendChild(s);
-  }
+<!-- CANVAS -->
+<div class="canvas-container">
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="canvas-draw"></canvas>
+  <canvas id="canvas-mediapipe"></canvas>
+  <div class="dedo-indicador" id="dedo" style="display:none"></div>
+</div>
 
-  // LIENZO
-  const canvas = document.getElementById('lienzo');
-  const ctx = canvas.getContext('2d');
-  let dibujando = false;
+<!-- COLORES -->
+<div class="colores-panel">
+  <p style="color:white;font-size:.6rem;font-weight:900;text-transform:uppercase">Color</p>
+  <button class="color-btn activo" style="background:#ef4444" onclick="elegirColor('#ef4444',this)"></button>
+  <button class="color-btn" style="background:#f97316" onclick="elegirColor('#f97316',this)"></button>
+  <button class="color-btn" style="background:#eab308" onclick="elegirColor('#eab308',this)"></button>
+  <button class="color-btn" style="background:#22c55e" onclick="elegirColor('#22c55e',this)"></button>
+  <button class="color-btn" style="background:#3b82f6" onclick="elegirColor('#3b82f6',this)"></button>
+  <button class="color-btn" style="background:#a855f7" onclick="elegirColor('#a855f7',this)"></button>
+  <button class="color-btn" style="background:#ffffff" onclick="elegirColor('#ffffff',this)"></button>
+  <button class="color-btn" style="background:#000000;border:2px solid #555" onclick="elegirColor('#000000',this)"></button>
+</div>
+
+<!-- GROSOR -->
+<div class="grosor-panel">
+  <p style="color:white;font-size:.6rem;font-weight:900;text-transform:uppercase">Grosor</p>
+  <button class="grosor-btn activo" onclick="elegirGrosor(4,this)"><div class="grosor-dot" style="width:4px;height:4px"></div></button>
+  <button class="grosor-btn" onclick="elegirGrosor(10,this)"><div class="grosor-dot" style="width:10px;height:10px"></div></button>
+  <button class="grosor-btn" onclick="elegirGrosor(20,this)"><div class="grosor-dot" style="width:18px;height:18px"></div></button>
+  <button class="grosor-btn" onclick="elegirGrosor(40,this)" style="font-size:1.2rem">🧹</button>
+</div>
+
+<!-- INSTRUCCION -->
+<div class="instruccion" id="instruccion">📷 Activando cámara...</div>
+
+<script>
+  const video = document.getElementById('video');
+  const canvasDraw = document.getElementById('canvas-draw');
+  const ctxDraw = canvasDraw.getContext('2d');
+  const dedo = document.getElementById('dedo');
+
   let colorActual = '#ef4444';
   let grosorActual = 4;
-  let esBorrador = false;
-  let historial = [];
-  let fondos = ['white','#fef9c3','#dbeafe','#dcfce7','#fce7f3'];
-  let fondoIdx = 0;
+  let dibujando = false;
+  let ultimoX = null, ultimoY = null;
+  let modoborrador = false;
 
-  function resizeCanvas(){
-    const wrap = canvas.parentElement;
-    canvas.width = wrap.clientWidth - 32;
-    if(historial.length > 0){
-      const img = new Image();
-      img.src = historial[historial.length-1];
-      img.onload = ()=> ctx.drawImage(img,0,0);
-    }
+  function resizeCanvas() {
+    canvasDraw.width = window.innerWidth;
+    canvasDraw.height = window.innerHeight;
   }
   resizeCanvas();
   window.addEventListener('resize', resizeCanvas);
 
-  function guardarEstado(){
-    historial.push(canvas.toDataURL());
-    if(historial.length > 20) historial.shift();
-  }
-
-  // Mouse
-  canvas.addEventListener('mousedown', e=>{ dibujando=true; guardarEstado(); ctx.beginPath(); ctx.moveTo(getX(e),getY(e)); });
-  canvas.addEventListener('mousemove', e=>{ if(!dibujando) return; dibujar(getX(e),getY(e)); });
-  canvas.addEventListener('mouseup', ()=> dibujando=false);
-  canvas.addEventListener('mouseleave', ()=> dibujando=false);
-
-  // Touch (móvil)
-  canvas.addEventListener('touchstart', e=>{ e.preventDefault(); dibujando=true; guardarEstado(); const t=e.touches[0]; ctx.beginPath(); ctx.moveTo(getX(t),getY(t)); });
-  canvas.addEventListener('touchmove', e=>{ e.preventDefault(); if(!dibujando) return; const t=e.touches[0]; dibujar(getX(t),getY(t)); });
-  canvas.addEventListener('touchend', ()=> dibujando=false);
-
-  function getX(e){ return (e.clientX - canvas.getBoundingClientRect().left) * (canvas.width/canvas.offsetWidth); }
-  function getY(e){ return (e.clientY - canvas.getBoundingClientRect().top) * (canvas.height/canvas.offsetHeight); }
-
-  function dibujar(x,y){
-    ctx.lineWidth = esBorrador ? grosorActual*4 : grosorActual;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = esBorrador ? (fondos[fondoIdx]||'white') : colorActual;
-    ctx.lineTo(x,y);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x,y);
-  }
-
-  function elegirColor(color, nombre){
+  function elegirColor(color, btn) {
     colorActual = color;
-    esBorrador = false;
-    document.getElementById('btn-borrador').classList.remove('activo');
-    document.getElementById('color-actual').textContent = `🎨 Color: ${nombre.charAt(0).toUpperCase()+nombre.slice(1)}`;
-    document.querySelectorAll('.color-btn').forEach(b=> b.classList.remove('activo'));
-    event.target.classList.add('activo');
-    fetch(`/dibujo/color/${nombre}`);
-  }
-
-  function elegirGrosor(g, btn){
-    grosorActual = g;
-    document.querySelectorAll('.grosor-btn').forEach(b=> b.classList.remove('activo'));
+    modoborrador = false;
+    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('activo'));
     btn.classList.add('activo');
   }
 
-  function toggleBorrador(){
-    esBorrador = !esBorrador;
-    document.getElementById('btn-borrador').classList.toggle('activo', esBorrador);
-    document.getElementById('lienzo-estado').textContent = esBorrador ? '🧹 Borrando...' : '✏️ Dibujando...';
+  function elegirGrosor(g, btn) {
+    if (g === 40) { modoborrador = true; grosorActual = 40; }
+    else { modoborrador = false; grosorActual = g; }
+    document.querySelectorAll('.grosor-btn').forEach(b => b.classList.remove('activo'));
+    btn.classList.add('activo');
   }
 
-  function deshacer(){
-    if(historial.length === 0) return;
-    const prev = historial.pop();
-    const img = new Image();
-    img.src = prev;
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle = fondos[fondoIdx]||'white';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    img.onload = ()=> ctx.drawImage(img,0,0);
+  function limpiar() {
+    ctxDraw.clearRect(0, 0, canvasDraw.width, canvasDraw.height);
+    hablar('Lienzo limpio!');
   }
 
-  function cambiarFondo(){
-    fondoIdx = (fondoIdx+1) % fondos.length;
-    const fd = fondos[fondoIdx];
-    ctx.fillStyle = fd;
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    if(historial.length>0){
-      const img=new Image(); img.src=historial[historial.length-1];
-      img.onload=()=>ctx.drawImage(img,0,0);
-    }
-  }
-
-  function limpiarLienzo(){
-    if(!confirm('¿Seguro que quieres limpiar el dibujo?')) return;
-    historial=[];
-    ctx.clearRect(0,0,canvas.width,canvas.height);
-    ctx.fillStyle = fondos[fondoIdx]||'white';
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-    fetch('/dibujo/limpiar');
-  }
-
-  function guardarDibujo(){
+  function guardar() {
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvasDraw.width;
+    tempCanvas.height = canvasDraw.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.drawImage(canvasDraw, 0, 0);
     const link = document.createElement('a');
     link.download = 'mi-dibujo.png';
-    link.href = canvas.toDataURL();
+    link.href = tempCanvas.toDataURL();
     link.click();
-    fetch('/dibujo/guardado');
+    hablar('Tu dibujo fue guardado!');
   }
 
-  // Instrucciones al entrar
-  fetch('/dibujo/instrucciones');
+  function hablar(texto) {
+    const u = new SpeechSynthesisUtterance(texto);
+    u.lang = 'es-ES';
+    u.rate = 0.9;
+    speechSynthesis.speak(u);
+  }
+
+  // MediaPipe
+  const hands = new Hands({locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});
+  hands.setOptions({maxNumHands:1, modelComplexity:0, minDetectionConfidence:0.7, minTrackingConfidence:0.5});
+
+  hands.onResults(results => {
+    if (results.multiHandLandmarks?.length > 0) {
+      const landmarks = results.multiHandLandmarks[0];
+      const indice = landmarks[8];
+      const medio = landmarks[12];
+
+      // Coordenadas en pantalla (espejadas)
+      const x = (1 - indice.x) * canvasDraw.width;
+      const y = indice.y * canvasDraw.height;
+
+      // Mostrar indicador del dedo
+      dedo.style.display = 'block';
+      dedo.style.left = `${(1 - indice.x) * 100}%`;
+      dedo.style.top = `${indice.y * 100}%`;
+      dedo.style.background = colorActual;
+
+      // Detectar si el dedo índice está levantado y el medio no
+      const indiceArriba = indice.y < landmarks[6].y;
+      const medioAbajo = medio.y > landmarks[10].y;
+
+      if (indiceArriba && medioAbajo) {
+        // Dibujar
+        ctxDraw.lineWidth = modoborrador ? grosorActual : grosorActual;
+        ctxDraw.lineCap = 'round';
+        ctxDraw.lineJoin = 'round';
+        ctxDraw.strokeStyle = modoborrador ? 'rgba(0,0,0,0)' : colorActual;
+        ctxDraw.globalCompositeOperation = modoborrador ? 'destination-out' : 'source-over';
+
+        if (ultimoX !== null) {
+          ctxDraw.beginPath();
+          ctxDraw.moveTo(ultimoX, ultimoY);
+          ctxDraw.lineTo(x, y);
+          ctxDraw.stroke();
+        }
+        ultimoX = x;
+        ultimoY = y;
+        dibujando = true;
+        document.getElementById('instruccion').textContent = '✏️ Dibujando...';
+      } else {
+        ultimoX = null;
+        ultimoY = null;
+        dibujando = false;
+        document.getElementById('instruccion').textContent = '☝️ Levanta solo el dedo índice para dibujar';
+      }
+    } else {
+      dedo.style.display = 'none';
+      ultimoX = null;
+      ultimoY = null;
+      document.getElementById('instruccion').textContent = '✋ Muestra tu mano frente a la cámara';
+    }
+  });
+
+  const camera = new Camera(video, {
+    onFrame: async () => { await hands.send({image: video}); },
+    width: 1280, height: 720
+  });
+
+  camera.start().then(() => {
+    document.getElementById('instruccion').textContent = '☝️ Levanta solo el dedo índice para dibujar';
+    hablar('Bienvenido al juego Dibujo con Movimiento. Levanta tu dedo índice para dibujar!');
+  });
 </script>
 </body>
 </html>
