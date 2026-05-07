@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mover y Reconocer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Nunito',sans-serif;background:linear-gradient(135deg,#0a2a1a,#0d3b2e,#1a4a1a);min-height:100vh;display:flex;align-items:center;justify-content:center}
+  .stars{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+  .star{position:absolute;background:white;border-radius:50%;animation:twinkle 2s infinite alternate}
+  @keyframes twinkle{from{opacity:.2}to{opacity:1}}
+
+  .container{position:relative;z-index:10;width:100%;max-width:960px;padding:16px}
+
+  /* HEADER */
+  .header{background:rgba(255,255,255,.97);border-radius:24px;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+  .header-left{display:flex;align-items:center;gap:12px}
+  .back-btn{background:#f3f4f6;border:none;border-radius:50px;padding:8px 16px;font-family:'Nunito',sans-serif;font-weight:700;color:#555;cursor:pointer;font-size:.85rem;text-decoration:none}
+  .header h2{font-size:1.1rem;font-weight:900;color:#16a34a}
+  .puntos{background:linear-gradient(135deg,#4ade80,#16a34a);color:white;border-radius:50px;padding:6px 16px;font-weight:900;font-size:.9rem}
+
+  /* TABS */
+  .tabs{display:flex;gap:12px;margin-bottom:16px}
+  .tab{flex:1;padding:12px;border:none;border-radius:16px;font-family:'Nunito',sans-serif;font-weight:900;font-size:1rem;cursor:pointer;transition:all .3s}
+  .tab.activa{background:white;color:#16a34a;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+  .tab.inactiva{background:rgba(255,255,255,.2);color:white}
+
+  /* INSTRUCCION */
+  .instruccion-banner{background:rgba(255,255,255,.15);border-radius:16px;padding:14px 20px;margin-bottom:16px;text-align:center;color:white;font-weight:700;font-size:1rem;border:2px solid rgba(255,255,255,.3)}
+
+  /* ÁREA DE JUEGO */
+  .juego-area{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+
+  /* PANEL IZQUIERDO - ITEMS ARRASTRABLES */
+  .panel-items{background:rgba(255,255,255,.97);border-radius:24px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+  .panel-titulo{font-size:.85rem;font-weight:900;color:#666;margin-bottom:14px;text-transform:uppercase;letter-spacing:1px}
+  .items-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .item-drag{background:#f9fafb;border:3px dashed #d1d5db;border-radius:16px;padding:14px 10px;text-align:center;cursor:grab;transition:all .3s;user-select:none}
+  .item-drag:hover{border-color:#16a34a;background:#f0fdf4;transform:scale(1.05)}
+  .item-drag.usado{opacity:.3;cursor:not-allowed;pointer-events:none}
+  .item-drag.arrastrando{opacity:.5;transform:scale(.95)}
+  .item-emoji{font-size:2.5rem;display:block;margin-bottom:4px}
+  .item-nombre{font-size:.75rem;font-weight:900;color:#444}
+
+  /* PANEL DERECHO - DESTINOS */
+  .panel-destinos{background:rgba(255,255,255,.97);border-radius:24px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+  .destinos-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .destino{border-radius:16px;padding:14px 10px;text-align:center;border:3px dashed #d1d5db;transition:all .3s;min-height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .destino.hover-activo{border-color:#16a34a;background:#f0fdf4;transform:scale(1.03)}
+  .destino.correcto{border-color:#16a34a;border-style:solid;background:#dcfce7}
+  .destino.incorrecto{border-color:#ef4444;border-style:solid;background:#fee2e2;animation:shake .3s ease}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  .destino-sombra{font-size:2.2rem;filter:brightness(0);opacity:.25}
+  .destino-nombre{font-size:.7rem;font-weight:900;color:#999;margin-top:4px}
+  .destino-check{font-size:1.8rem}
+
+  /* PROGRESO */
+  .progreso-card{background:rgba(255,255,255,.97);border-radius:24px;padding:18px 24px;box-shadow:0 8px 30px rgba(0,0,0,.3);margin-bottom:16px}
+  .progreso-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .progreso-header span{font-weight:900;color:#444;font-size:.9rem}
+  .barra-bg{background:#e5e7eb;border-radius:50px;height:14px;overflow:hidden}
+  .barra-fill{background:linear-gradient(135deg,#4ade80,#16a34a);height:100%;border-radius:50px;transition:width .5s ease}
+
+  /* BOTONES */
+  .botones{display:flex;gap:12px;justify-content:space-between}
+  .btn-reiniciar{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.4);border-radius:50px;padding:12px 24px;font-family:'Nunito',sans-serif;font-size:1rem;font-weight:900;color:white;cursor:pointer}
+  .btn-siguiente{display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#4ade80,#16a34a);border:none;border-radius:50px;padding:12px 28px;font-family:'Nunito',sans-serif;font-size:1rem;font-weight:900;color:white;cursor:pointer;box-shadow:0 4px 15px rgba(0,0,0,.2)}
+  .btn-siguiente:disabled{opacity:.5;cursor:not-allowed}
+
+  /* OVERLAY */
+  .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:100;display:none;align-items:center;justify-content:center}
+  .overlay.show{display:flex}
+  .overlay-card{background:white;border-radius:32px;padding:40px;text-align:center;max-width:380px;animation:popIn .4s ease}
+  @keyframes popIn{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+  .overlay-emoji{font-size:5rem;display:block;margin-bottom:16px}
+  .overlay-title{font-size:2rem;font-weight:900;margin-bottom:8px}
+  .overlay-desc{font-size:1rem;color:#666;margin-bottom:24px}
+  .overlay-btn{background:linear-gradient(135deg,#4ade80,#16a34a);border:none;border-radius:50px;padding:14px 36px;font-family:'Nunito',sans-serif;font-size:1.1rem;font-weight:900;color:white;cursor:pointer}
+
+  /* COLOR CHIPS */
+  .color-chip{width:48px;height:48px;border-radius:50%;display:block;margin:0 auto 6px;border:3px solid rgba(0,0,0,.1)}
+  .destino-color{width:40px;height:40px;border-radius:50%;border:3px solid rgba(0,0,0,.15)}
+</style>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+
+<div class="container">
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <a href="/" class="back-btn">← Menú</a>
+      <h2>🐾 Mover y Reconocer</h2>
+    </div>
+    <div class="puntos">⭐ <span id="puntos">0</span> pts</div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab activa" id="tab-animales" onclick="cambiarTab('animales')">🐾 Animales</button>
+    <button class="tab inactiva" id="tab-colores" onclick="cambiarTab('colores')">🎨 Colores</button>
+  </div>
+
+  <!-- INSTRUCCION -->
+  <div class="instruccion-banner" id="instruccion-banner">
+    🎯 Arrastra cada animal hacia su sombra correcta
+  </div>
+
+  <!-- JUEGO -->
+  <div class="juego-area">
+    <div class="panel-items">
+      <div class="panel-titulo" id="panel-titulo">🐾 Animales para mover</div>
+      <div class="items-grid" id="items-grid"></div>
+    </div>
+    <div class="panel-destinos">
+      <div class="panel-titulo">📍 Colócalos aquí</div>
+      <div class="destinos-grid" id="destinos-grid"></div>
+    </div>
+  </div>
+
+  <!-- PROGRESO -->
+  <div class="progreso-card">
+    <div class="progreso-header">
+      <span id="progreso-texto">0 de 5 completados</span>
+      <span id="progreso-emoji">🌱🌱🌱🌱🌱</span>
+    </div>
+    <div class="barra-bg">
+      <div class="barra-fill" id="barra-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <!-- BOTONES -->
+  <div class="botones">
+    <button class="btn-reiniciar" onclick="reiniciar()">🔄 Reiniciar</button>
+    <button class="btn-siguiente" id="btn-siguiente" onclick="irAColores()" disabled>
+      🎨 Ir a Colores ›
+    </button>
+  </div>
+</div>
+
+<!-- OVERLAY -->
+<div class="overlay" id="overlay">
+  <div class="overlay-card">
+    <span class="overlay-emoji" id="overlay-emoji">🎉</span>
+    <div class="overlay-title" id="overlay-title">¡Correcto!</div>
+    <div class="overlay-desc" id="overlay-desc">¡Muy bien!</div>
+    <button class="overlay-btn" onclick="cerrarOverlay()">¡Continuar!</button>
+  </div>
+</div>
+
+<script>
+  // Estrellas
+  const sc=document.getElementById('stars');
+  for(let i=0;i<50;i++){
+    const s=document.createElement('div');s.className='star';
+    const sz=Math.random()*3+1;
+    s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;animation-delay:${Math.random()*3}s;animation-duration:${1.5+Math.random()*2}s;`;
+    sc.appendChild(s);
+  }
+
+  let animales=[], colores=[], modoActual='animales';
+  let completadosAnimales=0, completadosColores=0, puntos=0;
+  let itemArrastrando=null, idxArrastrando=null;
+
+  async function cargarDatos(){
+    const ra = await fetch('/reconocer/animales');
+    animales = await ra.json();
+    const rc = await fetch('/reconocer/colores');
+    colores = await rc.json();
+    await fetch('/reconocer/instrucciones/animales');
+    renderAnimales();
+  }
+
+  function renderAnimales(){
+    modoActual='animales';
+    completadosAnimales=0;
+    const ig=document.getElementById('items-grid');
+    const dg=document.getElementById('destinos-grid');
+    ig.innerHTML=''; dg.innerHTML='';
+    document.getElementById('instruccion-banner').textContent='🎯 Arrastra cada animal hacia su sombra correcta';
+    document.getElementById('panel-titulo').textContent='🐾 Animales para mover';
+    document.getElementById('btn-siguiente').disabled=true;
+    actualizarProgreso(0,animales.length);
+
+    // Mezclar destinos
+    const shuffled=[...animales].sort(()=>Math.random()-.5);
+
+    animales.forEach((a,i)=>{
+      // Item arrastrable
+      const div=document.createElement('div');
+      div.className='item-drag';
+      div.draggable=true;
+      div.dataset.idx=i;
+      div.innerHTML=`<span class="item-emoji">${a.emoji}</span><span class="item-nombre">${a.nombre}</span>`;
+      div.addEventListener('dragstart',e=>{itemArrastrando=div;idxArrastrando=i;div.classList.add('arrastrando');});
+      div.addEventListener('dragend',()=>div.classList.remove('arrastrando'));
+      ig.appendChild(div);
+    });
+
+    shuffled.forEach((a,i)=>{
+      const originalIdx=animales.findIndex(x=>x.id===a.id);
+      const div=document.createElement('div');
+      div.className='destino';
+      div.dataset.esperaIdx=originalIdx;
+      div.style.background=a.color_fondo;
+      div.innerHTML=`<span class="destino-sombra">${a.emoji}</span><span class="destino-nombre">${a.nombre}</span>`;
+      div.addEventListener('dragover',e=>{e.preventDefault();div.classList.add('hover-activo');});
+      div.addEventListener('dragleave',()=>div.classList.remove('hover-activo'));
+      div.addEventListener('drop',e=>{
+        e.preventDefault();
+        div.classList.remove('hover-activo');
+        if(idxArrastrando===null) return;
+        const esperado=parseInt(div.dataset.esperaIdx);
+        if(idxArrastrando===esperado){
+          // CORRECTO
+          div.classList.add('correcto');
+          div.innerHTML=`<span class="destino-check">${animales[idxArrastrando].emoji}</span><span class="destino-nombre" style="color:#16a34a;font-weight:900">${animales[idxArrastrando].nombre}</span>`;
+          itemArrastrando.classList.add('usado');
+          puntos+=10;
+          document.getElementById('puntos').textContent=puntos;
+          fetch(`/reconocer/animal/correcto/${idxArrastrando}`);
+          completadosAnimales++;
+          actualizarProgreso(completadosAnimales,animales.length);
+          mostrarOverlay('🎉',`¡Muy bien!`,`¡Ese es el ${animales[idxArrastrando].nombre}!`,true);
+          if(completadosAnimales===animales.length){
+            setTimeout(()=>{document.getElementById('btn-siguiente').disabled=false;},1500);
+          }
+        } else {
+          // INCORRECTO
+          div.classList.add('incorrecto');
+          fetch('/reconocer/animal/incorrecto');
+          mostrarOverlay('😅','¡Inténtalo de nuevo!','Ese no es el lugar correcto',false);
+          setTimeout(()=>div.classList.remove('incorrecto'),600);
+        }
+        itemArrastrando=null; idxArrastrando=null;
+      });
+      dg.appendChild(div);
+    });
+  }
+
+  function renderColores(){
+    modoActual='colores';
+    completadosColores=0;
+    const ig=document.getElementById('items-grid');
+    const dg=document.getElementById('destinos-grid');
+    ig.innerHTML=''; dg.innerHTML='';
+    document.getElementById('instruccion-banner').textContent='🎨 Arrastra cada color hacia su lugar correcto';
+    document.getElementById('panel-titulo').textContent='🎨 Colores para mover';
+    document.getElementById('btn-siguiente').textContent='🏆 Completar juego';
+    document.getElementById('btn-siguiente').onclick=completarJuego;
+    document.getElementById('btn-siguiente').disabled=true;
+    actualizarProgreso(0,colores.length);
+    fetch('/reconocer/instrucciones/colores');
+
+    const shuffled=[...colores].sort(()=>Math.random()-.5);
+
+    colores.forEach((c,i)=>{
+      const div=document.createElement('div');
+      div.className='item-drag';
+      div.draggable=true;
+      div.dataset.idx=i;
+      div.innerHTML=`<span class="color-chip" style="background:${c.hex}"></span><span class="item-nombre">${c.nombre}</span>`;
+      div.addEventListener('dragstart',e=>{itemArrastrando=div;idxArrastrando=i;div.classList.add('arrastrando');});
+      div.addEventListener('dragend',()=>div.classList.remove('arrastrando'));
+      ig.appendChild(div);
+    });
+
+    shuffled.forEach((c,i)=>{
+      const originalIdx=colores.findIndex(x=>x.id===c.id);
+      const div=document.createElement('div');
+      div.className='destino';
+      div.dataset.esperaIdx=originalIdx;
+      div.style.background='#f9fafb';
+      div.innerHTML=`<span class="destino-color" style="background:${c.hex};opacity:.2;display:block;margin:0 auto 6px;width:40px;height:40px;border-radius:50%"></span><span class="destino-nombre">${c.nombre}</span>`;
+      div.addEventListener('dragover',e=>{e.preventDefault();div.classList.add('hover-activo');});
+      div.addEventListener('dragleave',()=>div.classList.remove('hover-activo'));
+      div.addEventListener('drop',e=>{
+        e.preventDefault();
+        div.classList.remove('hover-activo');
+        if(idxArrastrando===null) return;
+        const esperado=parseInt(div.dataset.esperaIdx);
+        if(idxArrastrando===esperado){
+          div.classList.add('correcto');
+          div.innerHTML=`<span style="display:block;width:44px;height:44px;border-radius:50%;background:${colores[idxArrastrando].hex};margin:0 auto 6px;border:3px solid rgba(0,0,0,.15)"></span><span class="destino-nombre" style="color:#16a34a;font-weight:900">${colores[idxArrastrando].nombre}</span>`;
+          itemArrastrando.classList.add('usado');
+          puntos+=10;
+          document.getElementById('puntos').textContent=puntos;
+          fetch(`/reconocer/color/correcto/${idxArrastrando}`);
+          completadosColores++;
+          actualizarProgreso(completadosColores,colores.length);
+          mostrarOverlay('🎨',`¡Correcto!`,`¡Ese es el color ${colores[idxArrastrando].nombre}!`,true);
+          if(completadosColores===colores.length){
+            setTimeout(()=>{document.getElementById('btn-siguiente').disabled=false;},1500);
+          }
+        } else {
+          div.classList.add('incorrecto');
+          fetch('/reconocer/color/incorrecto');
+          mostrarOverlay('😅','¡Inténtalo de nuevo!','Ese color no va ahí',false);
+          setTimeout(()=>div.classList.remove('incorrecto'),600);
+        }
+        itemArrastrando=null; idxArrastrando=null;
+      });
+      dg.appendChild(div);
+    });
+  }
+
+  function actualizarProgreso(completados,total){
+    const pct=(completados/total)*100;
+    document.getElementById('barra-fill').style.width=pct+'%';
+    document.getElementById('progreso-texto').textContent=`${completados} de ${total} completados`;
+    const emojis=['🌱','🌿','🌳','🌲','🎄'];
+    let e='';
+    for(let i=0;i<total;i++) e+=(i<completados)?'✅':'🌱';
+    document.getElementById('progreso-emoji').textContent=e;
+  }
+
+  function cambiarTab(tab){
+    document.getElementById('tab-animales').className='tab '+(tab==='animales'?'activa':'inactiva');
+    document.getElementById('tab-colores').className='tab '+(tab==='colores'?'activa':'inactiva');
+  }
+
+  function irAColores(){
+    cambiarTab('colores');
+    cerrarOverlay();
+    renderColores();
+  }
+
+  function completarJuego(){
+    fetch('/reconocer/completado');
+    mostrarOverlay('🏆','¡Juego Completado!',`¡Increíble! Lograste ${puntos} puntos`,true);
+    document.getElementById('barra-fill').style.width='100%';
+  }
+
+  function mostrarOverlay(emoji,titulo,desc,correcto){
+    document.getElementById('overlay-emoji').textContent=emoji;
+    document.getElementById('overlay-title').textContent=titulo;
+    document.getElementById('overlay-title').style.color=correcto?'#16a34a':'#dc2626';
+    document.getElementById('overlay-desc').textContent=desc;
+    document.getElementById('overlay').classList.add('show');
+  }
+
+  function cerrarOverlay(){
+    document.getElementById('overlay').classList.remove('show');
+  }
+
+  function reiniciar(){
+    puntos=0;
+    document.getElementById('puntos').textContent='0';
+    cambiarTab('animales');
+    fetch('/reconocer/instrucciones/animales');
+    renderAnimales();
+  }
+
+  cargarDatos();
+</script>
+</body>
+</html>

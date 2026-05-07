@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rompecabezas Interactivo</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Nunito',sans-serif;background:linear-gradient(135deg,#1a0a2e,#2d1b69,#1a2a4a);min-height:100vh;display:flex;align-items:center;justify-content:center}
+  .stars{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
+  .star{position:absolute;background:white;border-radius:50%;animation:twinkle 2s infinite alternate}
+  @keyframes twinkle{from{opacity:.2}to{opacity:1}}
+  .container{position:relative;z-index:10;width:100%;max-width:1100px;padding:16px}
+
+  .header{background:rgba(255,255,255,.97);border-radius:24px;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+  .header-left{display:flex;align-items:center;gap:12px}
+  .back-btn{background:#f3f4f6;border:none;border-radius:50px;padding:8px 16px;font-family:'Nunito',sans-serif;font-weight:700;color:#555;font-size:.85rem;text-decoration:none;cursor:pointer}
+  .header h2{font-size:1.1rem;font-weight:900;color:#7c3aed;font-family:'Fredoka One',cursive}
+  .puntos{background:linear-gradient(135deg,#c084fc,#9333ea);color:white;border-radius:50px;padding:6px 16px;font-weight:900;font-size:.9rem}
+
+  .selector{background:rgba(255,255,255,.97);border-radius:24px;padding:16px 20px;margin-bottom:14px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+  .selector h3{font-size:.95rem;font-weight:900;color:#444;margin-bottom:12px;text-align:center}
+  .puzzles-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .puzzle-btn{border:3px solid #e5e7eb;border-radius:16px;padding:12px;text-align:center;cursor:pointer;background:white;transition:all .3s;font-family:'Nunito',sans-serif}
+  .puzzle-btn:hover{border-color:#9333ea;transform:scale(1.03)}
+  .puzzle-btn.activo{border-color:#9333ea;background:#ede9fe;box-shadow:0 4px 15px rgba(147,51,234,.3)}
+  .puzzle-thumb{width:70px;height:70px;border-radius:12px;display:block;margin:0 auto 6px}
+  .puzzle-nombre{font-size:.9rem;font-weight:900;color:#444;font-family:'Fredoka One',cursive}
+
+  .juego-area{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+
+  .panel{background:rgba(255,255,255,.97);border-radius:24px;padding:18px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+  .panel-titulo{font-size:.8rem;font-weight:900;color:#666;margin-bottom:12px;text-transform:uppercase;letter-spacing:1px;text-align:center}
+  .piezas-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+
+  .pieza-wrap{position:relative;aspect-ratio:1;cursor:grab;transition:transform .2s;border-radius:10px;overflow:hidden}
+  .pieza-wrap:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(0,0,0,.3)}
+  .pieza-wrap.usada{opacity:.2;pointer-events:none}
+  .pieza-wrap.arrastrando{opacity:.5;transform:scale(.95)}
+  .pieza-canvas{width:100%;height:100%;border-radius:8px;display:block}
+
+  .tablero-wrap{position:relative;width:100%;aspect-ratio:1}
+  .tablero-canvas{width:100%;height:100%;border-radius:16px;display:block;box-shadow:0 6px 24px rgba(0,0,0,.3)}
+
+  .progreso-card{background:rgba(255,255,255,.97);border-radius:24px;padding:16px 22px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+  .progreso-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .progreso-header span{font-weight:900;color:#444;font-size:.9rem}
+  .barra-bg{background:#e5e7eb;border-radius:50px;height:14px;overflow:hidden}
+  .barra-fill{background:linear-gradient(135deg,#c084fc,#9333ea);height:100%;border-radius:50px;transition:width .5s ease;width:0%}
+
+  .botones{display:flex;gap:12px;justify-content:space-between;margin-top:12px}
+  .btn-reiniciar{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.4);border-radius:50px;padding:10px 22px;font-family:'Nunito',sans-serif;font-size:.95rem;font-weight:900;color:white;cursor:pointer}
+  .btn-nuevo{display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#c084fc,#9333ea);border:none;border-radius:50px;padding:10px 22px;font-family:'Nunito',sans-serif;font-size:.95rem;font-weight:900;color:white;cursor:pointer}
+
+  .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.75);z-index:100;display:none;align-items:center;justify-content:center}
+  .overlay.show{display:flex}
+  .overlay-card{background:white;border-radius:32px;padding:40px;text-align:center;max-width:400px;animation:popIn .4s ease}
+  @keyframes popIn{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+  .overlay-canvas{width:150px;height:150px;border-radius:20px;margin:0 auto 16px;display:block;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+  .overlay-title{font-size:1.8rem;font-weight:900;color:#7c3aed;margin-bottom:8px;font-family:'Fredoka One',cursive}
+  .overlay-desc{font-size:1rem;color:#555;margin-bottom:24px}
+  .overlay-btn{background:linear-gradient(135deg,#c084fc,#9333ea);border:none;border-radius:50px;padding:14px 36px;font-family:'Nunito',sans-serif;font-size:1.1rem;font-weight:900;color:white;cursor:pointer}
+
+  canvas.confetti-canvas{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:99;display:none}
+  canvas.confetti-canvas.show{display:block}
+</style>
+</head>
+<body>
+<div class="stars" id="stars"></div>
+<canvas class="confetti-canvas" id="confetti"></canvas>
+
+<div class="container">
+  <div class="header">
+    <div class="header-left">
+      <a href="/" class="back-btn">← Menú</a>
+      <h2>🧩 Rompecabezas Interactivo</h2>
+    </div>
+    <div class="puntos">⭐ <span id="puntos">0</span> pts</div>
+  </div>
+
+  <div class="selector">
+    <h3>🎯 Elige tu animal</h3>
+    <div class="puzzles-grid" id="puzzles-grid"></div>
+  </div>
+
+  <div class="juego-area">
+    <div class="panel">
+      <div class="panel-titulo">🧩 Piezas — arrástralas</div>
+      <div class="piezas-grid" id="piezas-grid"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-titulo">📋 Coloca las piezas aquí</div>
+      <div class="tablero-wrap">
+        <canvas class="tablero-canvas" id="tablero-canvas" width="360" height="360"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="progreso-card">
+    <div class="progreso-header">
+      <span id="progreso-texto">0 de 9 piezas colocadas</span>
+      <span id="progreso-emoji">🧩🧩🧩🧩🧩🧩🧩🧩🧩</span>
+    </div>
+    <div class="barra-bg">
+      <div class="barra-fill" id="barra-fill"></div>
+    </div>
+  </div>
+
+  <div class="botones">
+    <button class="btn-reiniciar" onclick="reiniciar()">🔄 Reiniciar</button>
+    <button class="btn-nuevo" onclick="siguientePuzzle()">🎲 Cambiar animal</button>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-card">
+    <canvas class="overlay-canvas" id="overlay-canvas" width="150" height="150"></canvas>
+    <div class="overlay-title" id="overlay-title">🏆 ¡Completado!</div>
+    <div class="overlay-desc" id="overlay-desc">¡Muy bien!</div>
+    <button class="overlay-btn" onclick="cerrarOverlay()">🎲 ¡Jugar de nuevo!</button>
+  </div>
+</div>
+
+<script>
+// ── ESTRELLAS ──────────────────────────────────────────────────
+const sc=document.getElementById('stars');
+for(let i=0;i<50;i++){
+  const s=document.createElement('div');s.className='star';
+  const sz=Math.random()*3+1;
+  s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;animation-delay:${Math.random()*3}s;animation-duration:${1.5+Math.random()*2}s;`;
+  sc.appendChild(s);
+}
+
+// ── DIBUJO DE ANIMALES ────────────────────────────────────────
+const ANIMALES = {
+  tigre: (ctx, w, h) => {
+    // Fondo naranja
+    ctx.fillStyle = '#FF8C00';
+    ctx.fillRect(0, 0, w, h);
+    // Cabeza
+    ctx.fillStyle = '#FFA500';
+    ctx.beginPath(); ctx.arc(w/2, h*0.46, w*0.38, 0, Math.PI*2); ctx.fill();
+    // Orejas
+    ctx.fillStyle = '#FF7000';
+    ctx.beginPath(); ctx.arc(w*0.24, h*0.2, w*0.1, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(w*0.76, h*0.2, w*0.1, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#FFB6C1';
+    ctx.beginPath(); ctx.arc(w*0.24, h*0.2, w*0.055, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(w*0.76, h*0.2, w*0.055, 0, Math.PI*2); ctx.fill();
+    // Pelaje facial claro
+    ctx.fillStyle = '#FFD28C';
+    ctx.beginPath(); ctx.ellipse(w/2, h*0.56, w*0.24, h*0.18, 0, 0, Math.PI*2); ctx.fill();
+    // Rayas
+    ctx.strokeStyle = '#8B4513'; ctx.lineWidth = w*0.042; ctx.lineCap = 'round';
+    [[w*0.17,h*0.24,w*0.29,h*0.38],[w*0.83,h*0.24,w*0.71,h*0.38],[w*0.09,h*0.42,w*0.24,h*0.48],[w*0.91,h*0.42,w*0.76,h*0.48]].forEach(([x1,y1,x2,y2])=>{ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();});
+    for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(w/2+i*w*0.1,h*0.1);ctx.lineTo(w/2+i*w*0.07,h*0.27);ctx.stroke();}
+    // Ojos blancos
+    ctx.fillStyle='white';
+    ctx.beginPath();ctx.arc(w*0.36,h*0.43,w*0.085,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w*0.64,h*0.43,w*0.085,0,Math.PI*2);ctx.fill();
+    // Iris verde
+    ctx.fillStyle='#3d7a00';
+    ctx.beginPath();ctx.arc(w*0.36,h*0.43,w*0.055,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w*0.64,h*0.43,w*0.055,0,Math.PI*2);ctx.fill();
+    // Pupila
+    ctx.fillStyle='black';
+    ctx.beginPath();ctx.arc(w*0.36,h*0.43,w*0.028,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w*0.64,h*0.43,w*0.028,0,Math.PI*2);ctx.fill();
+    // Brillo
+    ctx.fillStyle='rgba(255,255,255,0.75)';
+    ctx.beginPath();ctx.arc(w*0.375,h*0.42,w*0.015,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w*0.655,h*0.42,w*0.015,0,Math.PI*2);ctx.fill();
+    // Nariz
+    ctx.fillStyle='#FF6688';
+    ctx.beginPath();ctx.ellipse(w/2,h*0.57,w*0.06,h*0.038,0,0,Math.PI*2);ctx.fill();
+    // Boca
+    ctx.strokeStyle='#8B4513';ctx.lineWidth=w*0.025;
+    ctx.beginPath();ctx.moveTo(w/2,h*0.608);ctx.lineTo(w*0.42,h*0.666);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(w/2,h*0.608);ctx.lineTo(w*0.58,h*0.666);ctx.stroke();
+    // Bigotes
+    ctx.strokeStyle='rgba(0,0,0,0.35)';ctx.lineWidth=w*0.012;
+    [[w*0.14,h*0.575,w*0.41,h*0.575],[w*0.14,h*0.625,w*0.41,h*0.625],[w*0.86,h*0.575,w*0.59,h*0.575],[w*0.86,h*0.625,w*0.59,h*0.625]].forEach(([x1,y1,x2,y2])=>{ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();});
+  },
+
+  panda: (ctx, w, h) => {
+    ctx.fillStyle='#90EE90';ctx.fillRect(0,0,w,h);
+    // Cabeza blanca
+    ctx.fillStyle='white';ctx.beginPath();ctx.arc(w/2,h*0.46,w*0.4,0,Math.PI*2);ctx.fill();
+    // Orejas negras
+    ctx.fillStyle='#2a2a2a';
+    ctx.beginPath();ctx.arc(w*0.21,h*0.19,w*0.12,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w*0.79,h*0.19,w*0.12,0,Math.PI*2);ctx.fill();
+    // Manchas ojos
+    ctx.fillStyle='#2c2c2c';
+    ctx.beginPath();ctx.ellipse(w*0.35,h*0.43,w*0.12,h*0.1,Math.PI/6,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(w*0.65,h*0.43,w*0.12,h*0.1,-Math.PI/6,0,Math.PI*2);ctx.fill();
+    // Ojos blancos
+    ctx.fillStyle='white';
+    ctx.beginPath();ctx.arc(w*0.355,h*0.43,w*0.065,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w*0.645,h*0.43,w*0.065,0,Math.PI*2);ctx.fill();
+    // Iris azul
+    ctx.fillStyle='#3d2fb5';
+    ctx.beginPath();ctx.arc(w*0.355,h*0.43,w*0.04,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w*0.645,h*0.43,w*0.04,0,Math.PI*2);ctx.fill();
+    // Pupila
+    ctx.fillStyle='black';
+    ctx.beginPath();ctx.arc(w*0.357,h*0.43,w*0.022,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w*0.647,h*0.43,w*0.022,0,Math.PI*2);ctx.fill();
+    // Brillo
+    ctx.fillStyle='rgba(255,255,255,0.7)';
+    ctx.beginPath();ctx.arc(w*0.372,h*0.42,w*0.013,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w*0.662,h*0.42,w*0.013,0,Math.PI*2);ctx.fill();
+    // Morro
+    ctx.fillStyle='#f5f5f5';ctx.beginPath();ctx.ellipse(w/2,h*0.58,w*0.2,h*0.13,0,0,Math.PI*2);ctx.fill();
+    // Nariz
+    ctx.fillStyle='#222';ctx.beginPath();ctx.ellipse(w/2,h*0.54,w*0.058,h*0.037,0,0,Math.PI*2);ctx.fill();
+    // Boca
+    ctx.strokeStyle='#555';ctx.lineWidth=w*0.022;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(w/2,h*0.577);ctx.lineTo(w*0.43,h*0.636);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(w/2,h*0.577);ctx.lineTo(w*0.57,h*0.636);ctx.stroke();
+  },
+
+  elefante: (ctx, w, h) => {
+    ctx.fillStyle='#87CEEB';ctx.fillRect(0,0,w,h);
+    // Orejas
+    ctx.fillStyle='#9090A8';
+    ctx.beginPath();ctx.ellipse(w*0.14,h*0.44,w*0.16,h*0.26,Math.PI/6,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(w*0.86,h*0.44,w*0.16,h*0.26,-Math.PI/6,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#FFB6C1';
+    ctx.beginPath();ctx.ellipse(w*0.15,h*0.44,w*0.085,h*0.16,Math.PI/6,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(w*0.85,h*0.44,w*0.085,h*0.16,-Math.PI/6,0,Math.PI*2);ctx.fill();
+    // Cabeza
+    ctx.fillStyle='#A8A8B8';ctx.beginPath();ctx.arc(w/2,h*0.42,w*0.39,0,Math.PI*2);ctx.fill();
+    // Domo frontal
+    ctx.fillStyle='#B8B8C8';ctx.beginPath();ctx.ellipse(w/2,h*0.28,w*0.28,h*0.15,0,0,Math.PI*2);ctx.fill();
+    // Ojos
+    ctx.fillStyle='white';
+    ctx.beginPath();ctx.arc(w*0.36,h*0.39,w*0.065,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w*0.64,h*0.39,w*0.065,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#4a3200';
+    ctx.beginPath();ctx.arc(w*0.36,h*0.39,w*0.038,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w*0.64,h*0.39,w*0.038,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.65)';
+    ctx.beginPath();ctx.arc(w*0.375,h*0.38,w*0.016,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(w*0.655,h*0.38,w*0.016,0,Math.PI*2);ctx.fill();
+    // Trompa
+    ctx.fillStyle='#A8A8B8';
+    ctx.beginPath();
+    ctx.moveTo(w*0.41,h*0.55);
+    ctx.bezierCurveTo(w*0.3,h*0.7,w*0.27,h*0.83,w*0.38,h*0.92);
+    ctx.bezierCurveTo(w*0.44,h*0.97,w*0.56,h*0.97,w*0.6,h*0.88);
+    ctx.bezierCurveTo(w*0.62,h*0.82,w*0.57,h*0.7,w*0.59,h*0.55);
+    ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#9090A8';ctx.lineWidth=w*0.012;
+    for(let i=0;i<4;i++){
+      ctx.beginPath();ctx.moveTo(w*0.36+i*w*0.04,h*(0.63+i*0.074));ctx.lineTo(w*0.55+i*w*0.01,h*(0.63+i*0.074));ctx.stroke();
+    }
+    // Colmillos
+    ctx.strokeStyle='#fffde0';ctx.lineWidth=w*0.034;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(w*0.42,h*0.62);ctx.bezierCurveTo(w*0.3,h*0.7,w*0.27,h*0.8,w*0.31,h*0.85);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(w*0.58,h*0.62);ctx.bezierCurveTo(w*0.7,h*0.7,w*0.73,h*0.8,w*0.69,h*0.85);ctx.stroke();
+  }
+};
+
+// ── DATOS PUZZLES ─────────────────────────────────────────────
+const PUZZLES = [
+  { id:1, nombre:'Tigre',    emoji:'🐯', drawFn: ANIMALES.tigre,    glow:'#f59e0b' },
+  { id:2, nombre:'Panda',    emoji:'🐼', drawFn: ANIMALES.panda,    glow:'#22c55e' },
+  { id:3, nombre:'Elefante', emoji:'🐘', drawFn: ANIMALES.elefante, glow:'#3b82f6' }
+];
+
+// Genera canvas offscreen de 360×360 para cada animal
+const OFFSCREENS = {};
+PUZZLES.forEach(p=>{
+  const c = document.createElement('canvas');
+  c.width = 360; c.height = 360;
+  p.drawFn(c.getContext('2d'), 360, 360);
+  OFFSCREENS[p.id] = c;
+});
+
+let puzzleActual=null, piezasColocadas=0, puntos=0;
+let piezaArrastrando=null, idxArrastrando=null;
+let puzzleIdx=0, ordenMezclado=[];
+const GRID=3, BOARD=360, CELL=BOARD/GRID;
+
+function mezclar(arr){return [...arr].sort(()=>Math.random()-.5);}
+
+// ── SELECTOR ──────────────────────────────────────────────────
+function renderSelector(){
+  const grid=document.getElementById('puzzles-grid');
+  grid.innerHTML='';
+  PUZZLES.forEach((p,i)=>{
+    const thumb=document.createElement('canvas');
+    thumb.className='puzzle-thumb'; thumb.width=70; thumb.height=70;
+    p.drawFn(thumb.getContext('2d'),70,70);
+
+    const btn=document.createElement('button');
+    btn.className='puzzle-btn'+(i===puzzleIdx?' activo':'');
+    btn.appendChild(thumb);
+    const label=document.createElement('div');
+    label.className='puzzle-nombre'; label.textContent=p.emoji+' '+p.nombre;
+    btn.appendChild(label);
+    btn.onclick=()=>{
+      puzzleIdx=i;
+      document.querySelectorAll('.puzzle-btn').forEach(b=>b.classList.remove('activo'));
+      btn.classList.add('activo');
+      seleccionarPuzzle(PUZZLES[i]);
+    };
+    grid.appendChild(btn);
+  });
+}
+
+// ── SELECCIONAR PUZZLE ────────────────────────────────────────
+function seleccionarPuzzle(puzzle){
+  puzzleActual=puzzle;
+  piezasColocadas=0;
+  piezaArrastrando=null;
+  idxArrastrando=null;
+  ordenMezclado=mezclar([0,1,2,3,4,5,6,7,8]);
+  actualizarProgreso(0);
+  renderPiezas(puzzle);
+  dibujarTablero(puzzle, Array(9).fill(false));
+  setupDrop();
+}
+
+// ── PIEZAS ────────────────────────────────────────────────────
+function renderPiezas(puzzle){
+  const grid=document.getElementById('piezas-grid');
+  grid.innerHTML='';
+  const offscreen=OFFSCREENS[puzzle.id];
+
+  ordenMezclado.forEach(originalIdx=>{
+    const col=originalIdx%3, row=Math.floor(originalIdx/3);
+    const wrap=document.createElement('div');
+    wrap.className='pieza-wrap';
+    wrap.draggable=true;
+    wrap.id=`pieza-${originalIdx}`;
+
+    const c=document.createElement('canvas');
+    c.className='pieza-canvas';
+    c.width=100; c.height=100;
+    const cc=c.getContext('2d');
+    // Clip redondeado
+    cc.save();
+    cc.beginPath();cc.roundRect(2,2,96,96,10);cc.clip();
+    cc.drawImage(offscreen, col*CELL, row*CELL, CELL, CELL, 0, 0, 100, 100);
+    cc.restore();
+    // Borde blanco
+    cc.strokeStyle='rgba(255,255,255,0.75)';cc.lineWidth=3;
+    cc.beginPath();cc.roundRect(2,2,96,96,10);cc.stroke();
+    // Número
+    cc.fillStyle='rgba(0,0,0,0.45)';cc.fillRect(2,2,22,18);
+    cc.fillStyle='white';cc.font='bold 11px Nunito,sans-serif';cc.fillText(originalIdx+1,7,15);
+
+    wrap.appendChild(c);
+
+    wrap.addEventListener('dragstart',()=>{
+      piezaArrastrando=wrap;
+      idxArrastrando=originalIdx;
+      wrap.classList.add('arrastrando');
+    });
+    wrap.addEventListener('dragend',()=>wrap.classList.remove('arrastrando'));
+    grid.appendChild(wrap);
+  });
+}
+
+// ── TABLERO CANVAS ────────────────────────────────────────────
+const colocadas = Array(9).fill(false); // estado global de celdas
+
+function dibujarTablero(puzzle, estado){
+  const canvas=document.getElementById('tablero-canvas');
+  const ctx=canvas.getContext('2d');
+  const offscreen=OFFSCREENS[puzzle.id];
+  ctx.clearRect(0,0,BOARD,BOARD);
+
+  for(let row=0;row<GRID;row++){
+    for(let col=0;col<GRID;col++){
+      const idx=row*GRID+col;
+      const x=col*CELL, y=row*CELL;
+      if(estado[idx]){
+        // Pieza correctamente colocada
+        ctx.save();
+        ctx.beginPath();ctx.roundRect(x+3,y+3,CELL-6,CELL-6,8);ctx.clip();
+        ctx.drawImage(offscreen,x,y,CELL,CELL,x+3,y+3,CELL-6,CELL-6);
+        ctx.restore();
+        ctx.strokeStyle='rgba(255,255,255,0.5)';ctx.lineWidth=2;
+        ctx.beginPath();ctx.roundRect(x+3,y+3,CELL-6,CELL-6,8);ctx.stroke();
+      } else {
+        // Hueco vacío
+        ctx.fillStyle='rgba(0,0,20,0.5)';
+        ctx.beginPath();ctx.roundRect(x+4,y+4,CELL-8,CELL-8,8);ctx.fill();
+        ctx.setLineDash([6,4]);ctx.strokeStyle='rgba(255,255,255,0.22)';ctx.lineWidth=2;
+        ctx.beginPath();ctx.roundRect(x+4,y+4,CELL-8,CELL-8,8);ctx.stroke();ctx.setLineDash([]);
+        ctx.fillStyle='rgba(255,255,255,0.32)';ctx.font='bold 20px Nunito,sans-serif';
+        ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText(idx+1, x+CELL/2, y+CELL/2);
+      }
+    }
+  }
+  // Líneas de cuadrícula
+  ctx.strokeStyle='rgba(255,255,255,0.18)';ctx.lineWidth=2;ctx.setLineDash([]);
+  for(let i=1;i<GRID;i++){
+    ctx.beginPath();ctx.moveTo(i*CELL,0);ctx.lineTo(i*CELL,BOARD);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,i*CELL);ctx.lineTo(BOARD,i*CELL);ctx.stroke();
+  }
+}
+
+function highlightCell(idx, color){
+  const canvas=document.getElementById('tablero-canvas');
+  const ctx=canvas.getContext('2d');
+  const col=idx%GRID, row=Math.floor(idx/GRID);
+  const x=col*CELL, y=row*CELL;
+  dibujarTablero(puzzleActual, colocadas);
+  ctx.fillStyle=color;
+  ctx.beginPath();ctx.roundRect(x+4,y+4,CELL-8,CELL-8,8);ctx.fill();
+  ctx.strokeStyle=color==='rgba(147,51,234,0.35)'?'rgba(196,132,252,0.9)':'rgba(239,68,68,0.9)';
+  ctx.lineWidth=3;ctx.beginPath();ctx.roundRect(x+4,y+4,CELL-8,CELL-8,8);ctx.stroke();
+}
+
+// ── DROP SOBRE CANVAS ─────────────────────────────────────────
+function setupDrop(){
+  // Reset estado
+  colocadas.fill(false);
+
+  const canvas=document.getElementById('tablero-canvas');
+  // Quitar listeners viejos clonando
+  const newCanvas=canvas.cloneNode(true);
+  canvas.parentNode.replaceChild(newCanvas, canvas);
+  newCanvas.id='tablero-canvas';
+
+  newCanvas.addEventListener('dragover', e=>{
+    e.preventDefault();
+    const {col,row}=getCellFromEvent(e,newCanvas);
+    if(col<0)return;
+    const idx=row*GRID+col;
+    if(!colocadas[idx]) highlightCell(idx,'rgba(147,51,234,0.35)');
+  });
+  newCanvas.addEventListener('dragleave', ()=>dibujarTablero(puzzleActual,colocadas));
+  newCanvas.addEventListener('drop', e=>{
+    e.preventDefault();
+    if(idxArrastrando===null)return;
+    const {col,row}=getCellFromEvent(e,newCanvas);
+    if(col<0){piezaArrastrando=null;idxArrastrando=null;return;}
+    const idx=row*GRID+col;
+    if(colocadas[idx]){piezaArrastrando=null;idxArrastrando=null;return;}
+
+    if(idxArrastrando===idx){
+      // ✅ CORRECTO
+      colocadas[idx]=true;
+      dibujarTablero(puzzleActual,colocadas);
+      piezaArrastrando.classList.add('usada');
+      puntos+=10;
+      document.getElementById('puntos').textContent=puntos;
+      piezasColocadas++;
+      actualizarProgreso(piezasColocadas);
+      fetch(`/rompecabezas/pieza/correcta/${piezasColocadas}`);
+      if(piezasColocadas===9) setTimeout(()=>completarPuzzle(),700);
+    } else {
+      // ❌ INCORRECTO
+      highlightCell(idx,'rgba(239,68,68,0.35)');
+      fetch('/rompecabezas/pieza/incorrecta');
+      setTimeout(()=>dibujarTablero(puzzleActual,colocadas),600);
+    }
+    piezaArrastrando=null;idxArrastrando=null;
+  });
+}
+
+function getCellFromEvent(e, canvas){
+  const rect=canvas.getBoundingClientRect();
+  const sx=BOARD/rect.width, sy=BOARD/rect.height;
+  const bx=(e.clientX-rect.left)*sx, by=(e.clientY-rect.top)*sy;
+  const col=Math.floor(bx/CELL), row=Math.floor(by/CELL);
+  if(col<0||col>=GRID||row<0||row>=GRID) return {col:-1,row:-1};
+  return {col,row};
+}
+
+// ── PROGRESO ──────────────────────────────────────────────────
+function actualizarProgreso(n){
+  const pct=(n/9)*100;
+  document.getElementById('barra-fill').style.width=pct+'%';
+  document.getElementById('progreso-texto').textContent=`${n} de 9 piezas colocadas`;
+  let e=''; for(let i=0;i<9;i++) e+=(i<n)?'✅':'🧩';
+  document.getElementById('progreso-emoji').textContent=e;
+}
+
+// ── COMPLETAR ─────────────────────────────────────────────────
+function completarPuzzle(){
+  fetch(`/rompecabezas/completado/${puzzleActual.nombre}`);
+  lanzarConfetti();
+  const oc=document.getElementById('overlay-canvas');
+  puzzleActual.drawFn(oc.getContext('2d'),150,150);
+  document.getElementById('overlay-title').textContent=`🏆 ¡Es un ${puzzleActual.nombre}!`;
+  document.getElementById('overlay-desc').textContent=`¡Completaste el rompecabezas con ${puntos} puntos! ¡Eres increíble!`;
+  setTimeout(()=>document.getElementById('overlay').classList.add('show'),500);
+}
+
+function cerrarOverlay(){
+  document.getElementById('overlay').classList.remove('show');
+  reiniciar();
+}
+
+function reiniciar(){
+  puntos=0; document.getElementById('puntos').textContent='0';
+  seleccionarPuzzle(puzzleActual);
+}
+
+function siguientePuzzle(){
+  puzzleIdx=(puzzleIdx+1)%PUZZLES.length;
+  document.querySelectorAll('.puzzle-btn').forEach((b,i)=>b.classList.toggle('activo',i===puzzleIdx));
+  puntos=0; document.getElementById('puntos').textContent='0';
+  seleccionarPuzzle(PUZZLES[puzzleIdx]);
+}
+
+// ── CONFETI ───────────────────────────────────────────────────
+function lanzarConfetti(){
+  const cv=document.getElementById('confetti');cv.classList.add('show');
+  cv.width=window.innerWidth;cv.height=window.innerHeight;
+  const ctx=cv.getContext('2d');
+  const p=Array.from({length:150},()=>({x:Math.random()*cv.width,y:-20,r:Math.random()*8+4,color:`hsl(${Math.random()*360},90%,60%)`,speed:Math.random()*3+2,swing:Math.random()*3-1.5}));
+  let f=0;
+  function go(){ctx.clearRect(0,0,cv.width,cv.height);p.forEach(pt=>{ctx.beginPath();ctx.arc(pt.x,pt.y,pt.r,0,Math.PI*2);ctx.fillStyle=pt.color;ctx.fill();pt.y+=pt.speed;pt.x+=pt.swing;if(pt.y>cv.height){pt.y=-10;pt.x=Math.random()*cv.width;}});f++;if(f<200)requestAnimationFrame(go);else cv.classList.remove('show');}
+  go();
+}
+
+// ── INICIO ────────────────────────────────────────────────────
+renderSelector();
+seleccionarPuzzle(PUZZLES[0]);
+fetch('/rompecabezas/instrucciones');
+</script>
+</body>
+</html>
