@@ -9,25 +9,25 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
   *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'Nunito',sans-serif;background:#000;min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow:hidden}
+  body{font-family:'Nunito',sans-serif;background:#000;min-height:100vh;overflow:hidden}
   .header{position:fixed;top:0;left:0;right:0;z-index:100;background:rgba(0,0,0,.7);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;backdrop-filter:blur(10px)}
   .back-btn{background:rgba(255,255,255,.2);border:none;border-radius:50px;padding:7px 14px;font-family:'Nunito',sans-serif;font-weight:700;color:white;cursor:pointer;font-size:.85rem;text-decoration:none}
   .header h2{font-size:1rem;font-weight:900;color:white}
   .header-btns{display:flex;gap:8px}
-  .btn-limpiar{background:rgba(239,68,68,.8);border:none;border-radius:50px;padding:7px 14px;font-family:'Nunito',sans-serif;font-weight:900;color:white;cursor:pointer;font-size:.85rem}
-  .btn-guardar{background:rgba(251,191,36,.9);border:none;border-radius:50px;padding:7px 14px;font-family:'Nunito',sans-serif;font-weight:900;color:white;cursor:pointer;font-size:.85rem}
-  .canvas-container{position:relative;width:100vw;height:100vh}
-  video{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
-  #canvas-draw{position:absolute;top:0;left:0;width:100%;height:100%}
-  .colores-panel{position:fixed;left:12px;top:50%;transform:translateY(-50%);z-index:100;display:flex;flex-direction:column;gap:8px;align-items:center;background:rgba(0,0,0,.6);padding:10px 8px;border-radius:20px;backdrop-filter:blur(10px)}
-  .color-btn{width:40px;height:40px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:transform .15s,border-color .15s}
+  .btn-accion{border:none;border-radius:50px;padding:7px 14px;font-family:'Nunito',sans-serif;font-weight:900;color:white;cursor:pointer;font-size:.85rem}
+  .btn-limpiar{background:rgba(239,68,68,.8)}
+  .btn-guardar{background:rgba(251,191,36,.9)}
+  video{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);z-index:0}
+  #canvas-draw{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none}
+  .colores-panel{position:fixed;left:12px;top:50%;transform:translateY(-50%);z-index:100;display:flex;flex-direction:column;gap:8px;align-items:center;background:rgba(0,0,0,.65);padding:10px 8px;border-radius:20px}
+  .color-btn{width:38px;height:38px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:transform .15s}
   .color-btn.activo{border-color:white;transform:scale(1.2)}
-  .grosor-panel{position:fixed;right:12px;top:50%;transform:translateY(-50%);z-index:100;display:flex;flex-direction:column;gap:8px;align-items:center;background:rgba(0,0,0,.6);padding:10px 8px;border-radius:20px;backdrop-filter:blur(10px)}
-  .grosor-btn{width:40px;height:40px;border-radius:50%;border:2px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .grosor-panel{position:fixed;right:12px;top:50%;transform:translateY(-50%);z-index:100;display:flex;flex-direction:column;gap:8px;align-items:center;background:rgba(0,0,0,.65);padding:10px 8px;border-radius:20px}
+  .grosor-btn{width:38px;height:38px;border-radius:50%;border:2px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem}
   .grosor-btn.activo{border-color:white;background:rgba(255,255,255,.3)}
   .grosor-dot{background:white;border-radius:50%}
-  .instruccion{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.8);color:white;padding:12px 28px;border-radius:50px;font-weight:700;font-size:.95rem;backdrop-filter:blur(10px);z-index:100;text-align:center;white-space:nowrap}
-  .dedo-circulo{position:fixed;width:24px;height:24px;border-radius:50%;border:3px solid white;pointer-events:none;transform:translate(-50%,-50%);z-index:200;display:none;box-shadow:0 0 10px rgba(255,255,255,.5)}
+  .instruccion{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.8);color:white;padding:10px 24px;border-radius:50px;font-weight:700;font-size:.9rem;z-index:100;white-space:nowrap}
+  #cursor{position:fixed;border-radius:50%;pointer-events:none;z-index:200;transform:translate(-50%,-50%);transition:width .1s,height .1s;display:none}
 </style>
 </head>
 <body>
@@ -36,198 +36,211 @@
   <a href="/" class="back-btn">← Menú</a>
   <h2>🎨 Dibujo con Movimiento</h2>
   <div class="header-btns">
-    <button class="btn-limpiar" onclick="limpiar()">🗑️ Limpiar</button>
-    <button class="btn-guardar" onclick="guardar()">💾 Guardar</button>
+    <button class="btn-accion btn-limpiar" onclick="limpiar()">🗑️ Limpiar</button>
+    <button class="btn-accion btn-guardar" onclick="guardar()">💾 Guardar</button>
   </div>
 </div>
 
-<div class="canvas-container">
-  <video id="video" autoplay playsinline muted></video>
-  <canvas id="canvas-draw"></canvas>
-</div>
-
-<div class="dedo-circulo" id="dedo-circulo"></div>
+<video id="video" autoplay playsinline muted></video>
+<canvas id="canvas-draw"></canvas>
+<div id="cursor"></div>
 
 <div class="colores-panel">
-  <p style="color:white;font-size:.6rem;font-weight:900;text-transform:uppercase;text-align:center">🎨</p>
-  <button class="color-btn activo" style="background:#ef4444" onclick="elegirColor('#ef4444',this)"></button>
-  <button class="color-btn" style="background:#f97316" onclick="elegirColor('#f97316',this)"></button>
-  <button class="color-btn" style="background:#eab308" onclick="elegirColor('#eab308',this)"></button>
-  <button class="color-btn" style="background:#22c55e" onclick="elegirColor('#22c55e',this)"></button>
-  <button class="color-btn" style="background:#3b82f6" onclick="elegirColor('#3b82f6',this)"></button>
-  <button class="color-btn" style="background:#a855f7" onclick="elegirColor('#a855f7',this)"></button>
-  <button class="color-btn" style="background:#ec4899" onclick="elegirColor('#ec4899',this)"></button>
-  <button class="color-btn" style="background:#ffffff" onclick="elegirColor('#ffffff',this)"></button>
+  <span style="color:white;font-size:.65rem;font-weight:900">🎨</span>
+  <button class="color-btn activo" style="background:#ef4444" onclick="setColor('#ef4444',this)"></button>
+  <button class="color-btn" style="background:#f97316" onclick="setColor('#f97316',this)"></button>
+  <button class="color-btn" style="background:#eab308" onclick="setColor('#eab308',this)"></button>
+  <button class="color-btn" style="background:#22c55e" onclick="setColor('#22c55e',this)"></button>
+  <button class="color-btn" style="background:#3b82f6" onclick="setColor('#3b82f6',this)"></button>
+  <button class="color-btn" style="background:#a855f7" onclick="setColor('#a855f7',this)"></button>
+  <button class="color-btn" style="background:#ec4899" onclick="setColor('#ec4899',this)"></button>
+  <button class="color-btn" style="background:#ffffff" onclick="setColor('#ffffff',this)"></button>
 </div>
 
 <div class="grosor-panel">
-  <p style="color:white;font-size:.6rem;font-weight:900;text-transform:uppercase;text-align:center">✏️</p>
-  <button class="grosor-btn activo" onclick="elegirGrosor(5,this)"><div class="grosor-dot" style="width:5px;height:5px"></div></button>
-  <button class="grosor-btn" onclick="elegirGrosor(12,this)"><div class="grosor-dot" style="width:12px;height:12px"></div></button>
-  <button class="grosor-btn" onclick="elegirGrosor(25,this)"><div class="grosor-dot" style="width:22px;height:22px"></div></button>
-  <button class="grosor-btn" onclick="activarBorrador(this)">🧹</button>
+  <span style="color:white;font-size:.65rem;font-weight:900">✏️</span>
+  <button class="grosor-btn activo" onclick="setGrosor(5,this)"><div class="grosor-dot" style="width:5px;height:5px"></div></button>
+  <button class="grosor-btn" onclick="setGrosor(14,this)"><div class="grosor-dot" style="width:13px;height:13px"></div></button>
+  <button class="grosor-btn" onclick="setGrosor(28,this)"><div class="grosor-dot" style="width:22px;height:22px"></div></button>
+  <button class="grosor-btn" onclick="setBorrador(this)">🧹</button>
 </div>
 
 <div class="instruccion" id="instruccion">📷 Activando cámara...</div>
 
 <script>
-  const video = document.getElementById('video');
+  const video  = document.getElementById('video');
   const canvas = document.getElementById('canvas-draw');
-  const ctx = canvas.getContext('2d');
-  const dedoCirculo = document.getElementById('dedo-circulo');
+  const ctx    = canvas.getContext('2d');
+  const cursor = document.getElementById('cursor');
 
-  let colorActual = '#ef4444';
-  let grosorActual = 5;
-  let borrador = false;
-  let ultimoX = null, ultimoY = null;
-  let frameCount = 0;
+  // Estado
+  let color   = '#ef4444';
+  let grosor  = 5;
+  let isBorrador = false;
 
-  function resizeCanvas() {
-    canvas.width = window.innerWidth;
+  // Suavizado: historial de posiciones
+  let posHistory = [];
+  const SMOOTH = 6; // cuántos frames promediar
+
+  // Para detectar "dedo levantado" con historial (anti-parpadeo)
+  let dedoFrames = 0;
+  let noDedoFrames = 0;
+  const UMBRAL = 3; // frames seguidos para cambiar estado
+  let dibujando = false;
+
+  function resizeCanvas(){
+    canvas.width  = window.innerWidth;
     canvas.height = window.innerHeight;
   }
   resizeCanvas();
   window.addEventListener('resize', resizeCanvas);
 
-  function elegirColor(color, btn) {
-    colorActual = color;
-    borrador = false;
-    document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('activo'));
+  function setColor(c, btn){
+    color = c; isBorrador = false;
+    document.querySelectorAll('.color-btn').forEach(b=>b.classList.remove('activo'));
+    btn.classList.add('activo');
+    cursor.style.borderColor = c;
+  }
+  function setGrosor(g, btn){
+    grosor = g; isBorrador = false;
+    document.querySelectorAll('.grosor-btn').forEach(b=>b.classList.remove('activo'));
     btn.classList.add('activo');
   }
-
-  function elegirGrosor(g, btn) {
-    grosorActual = g;
-    borrador = false;
-    document.querySelectorAll('.grosor-btn').forEach(b => b.classList.remove('activo'));
+  function setBorrador(btn){
+    isBorrador = true; grosor = 45;
+    document.querySelectorAll('.grosor-btn').forEach(b=>b.classList.remove('activo'));
     btn.classList.add('activo');
+    cursor.style.borderColor = 'white';
   }
-
-  function activarBorrador(btn) {
-    borrador = true;
-    grosorActual = 40;
-    document.querySelectorAll('.grosor-btn').forEach(b => b.classList.remove('activo'));
-    btn.classList.add('activo');
-  }
-
-  function limpiar() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  function limpiar(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    posHistory = [];
     hablar('Lienzo limpio!');
   }
-
-  function guardar() {
+  function guardar(){
     const link = document.createElement('a');
     link.download = 'mi-dibujo.png';
     link.href = canvas.toDataURL();
     link.click();
     hablar('Tu dibujo fue guardado!');
   }
-
-  function hablar(texto) {
+  function hablar(txt){
     speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(texto);
-    u.lang = 'es-ES';
-    u.rate = 0.9;
+    const u = new SpeechSynthesisUtterance(txt);
+    u.lang='es-ES'; u.rate=0.9;
     speechSynthesis.speak(u);
   }
 
-  // Detectar si solo el índice está levantado
-  function soloIndice(lm) {
-    // Punta del índice más arriba que su segunda articulación
-    const indiceArriba = lm[8].y < lm[6].y;
-    // Los otros dedos doblados (puntas más abajo que segundas articulaciones)
-    const medioAbajo  = lm[12].y > lm[10].y;
-    const anularAbajo = lm[16].y > lm[14].y;
-    const meniqueAbajo = lm[20].y > lm[18].y;
-    return indiceArriba && medioAbajo && anularAbajo && meniqueAbajo;
+  // Promedio suavizado
+  function smoothPos(x, y){
+    posHistory.push({x,y});
+    if(posHistory.length > SMOOTH) posHistory.shift();
+    const avg = posHistory.reduce((a,p)=>({x:a.x+p.x, y:a.y+p.y}), {x:0,y:0});
+    return { x: avg.x/posHistory.length, y: avg.y/posHistory.length };
   }
+
+  // Solo índice levantado
+  function soloIndice(lm){
+    const iUp  = lm[8].y  < lm[6].y  - 0.02;
+    const mDn  = lm[12].y > lm[10].y - 0.01;
+    const rDn  = lm[16].y > lm[14].y - 0.01;
+    const pDn  = lm[20].y > lm[18].y - 0.01;
+    return iUp && mDn && rDn && pDn;
+  }
+
+  // Última posición para trazar
+  let lastX = null, lastY = null;
 
   const hands = new Hands({
     locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`
   });
-
   hands.setOptions({
     maxNumHands: 1,
     modelComplexity: 1,
-    minDetectionConfidence: 0.6,
-    minTrackingConfidence: 0.6
+    minDetectionConfidence: 0.55,
+    minTrackingConfidence: 0.75
   });
 
-  hands.onResults(results => {
-    frameCount++;
+  hands.onResults(res => {
+    if(res.multiHandLandmarks && res.multiHandLandmarks.length > 0){
+      const lm = res.multiHandLandmarks[0];
+      const raw = lm[8];
 
-    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-      const lm = results.multiHandLandmarks[0];
-      const punta = lm[8]; // Punta del índice
+      // Coordenada espejada
+      const rawX = (1 - raw.x) * canvas.width;
+      const rawY = raw.y * canvas.height;
 
-      // Posición en pantalla (espejada horizontalmente)
-      const screenX = (1 - punta.x) * window.innerWidth;
-      const screenY = punta.y * window.innerHeight;
+      // Suavizar posición
+      const {x, y} = smoothPos(rawX, rawY);
 
-      // Mostrar círculo indicador
-      dedoCirculo.style.display = 'block';
-      dedoCirculo.style.left = screenX + 'px';
-      dedoCirculo.style.top = screenY + 'px';
+      // Mover cursor
+      cursor.style.display = 'block';
+      cursor.style.left = x + 'px';
+      cursor.style.top  = y + 'px';
 
-      if (soloIndice(lm)) {
-        // Solo índice levantado → DIBUJAR
-        dedoCirculo.style.background = colorActual;
-        dedoCirculo.style.borderColor = 'white';
-        dedoCirculo.style.width = '20px';
-        dedoCirculo.style.height = '20px';
+      if(soloIndice(lm)){
+        dedoFrames++;
+        noDedoFrames = 0;
+        if(dedoFrames >= UMBRAL){
+          dibujando = true;
+        }
+      } else {
+        noDedoFrames++;
+        dedoFrames = 0;
+        if(noDedoFrames >= UMBRAL){
+          dibujando = false;
+          lastX = null;
+          lastY = null;
+          posHistory = [];
+        }
+      }
 
-        document.getElementById('instruccion').textContent = '✏️ ¡Dibujando!';
+      // Estilo del cursor
+      const sz = grosor + 10;
+      cursor.style.width  = sz + 'px';
+      cursor.style.height = sz + 'px';
+      cursor.style.background = dibujando ? (isBorrador ? 'rgba(255,255,255,0.3)' : color) : 'transparent';
+      cursor.style.border = `3px solid ${dibujando ? 'white' : 'rgba(255,255,255,0.4)'}`;
 
-        if (ultimoX !== null && ultimoY !== null) {
+      document.getElementById('instruccion').textContent =
+        dibujando ? '✏️ ¡Dibujando!' : '☝️ Levanta solo el índice para dibujar';
+
+      // Dibujar trazo
+      if(dibujando){
+        if(lastX !== null && lastY !== null){
           ctx.beginPath();
-          ctx.moveTo(ultimoX, ultimoY);
-          ctx.lineTo(screenX, screenY);
-          ctx.lineWidth = grosorActual;
-          ctx.lineCap = 'round';
-          ctx.lineJoin = 'round';
-          if (borrador) {
-            ctx.globalCompositeOperation = 'destination-out';
-            ctx.strokeStyle = 'rgba(0,0,0,1)';
-          } else {
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.strokeStyle = colorActual;
-          }
+          ctx.moveTo(lastX, lastY);
+          ctx.lineTo(x, y);
+          ctx.lineWidth   = grosor;
+          ctx.lineCap     = 'round';
+          ctx.lineJoin    = 'round';
+          ctx.globalCompositeOperation = isBorrador ? 'destination-out' : 'source-over';
+          ctx.strokeStyle = isBorrador ? 'rgba(0,0,0,1)' : color;
           ctx.stroke();
         }
-        ultimoX = screenX;
-        ultimoY = screenY;
-
-      } else {
-        // Mano abierta o puño → NO dibujar, levantar el lápiz
-        ultimoX = null;
-        ultimoY = null;
-        dedoCirculo.style.background = 'transparent';
-        dedoCirculo.style.borderColor = 'rgba(255,255,255,0.5)';
-        dedoCirculo.style.width = '16px';
-        dedoCirculo.style.height = '16px';
-        document.getElementById('instruccion').textContent = '☝️ Levanta solo el dedo índice para dibujar';
+        lastX = x;
+        lastY = y;
       }
 
     } else {
-      // No se ve la mano
-      dedoCirculo.style.display = 'none';
-      ultimoX = null;
-      ultimoY = null;
+      cursor.style.display = 'none';
+      dedoFrames = 0;
+      noDedoFrames = 0;
+      dibujando = false;
+      lastX = null; lastY = null;
+      posHistory = [];
       document.getElementById('instruccion').textContent = '✋ Muestra tu mano frente a la cámara';
     }
   });
 
   const camera = new Camera(video, {
-    onFrame: async () => {
-      await hands.send({image: video});
-    },
-    width: 1280,
-    height: 720
+    onFrame: async () => { await hands.send({image: video}); },
+    width: 1280, height: 720
   });
 
   camera.start().then(() => {
-    hablar('Bienvenido al juego Dibujo con Movimiento. Levanta solo tu dedo índice para dibujar!');
     document.getElementById('instruccion').textContent = '✋ Muestra tu mano frente a la cámara';
+    hablar('Bienvenido! Levanta solo el dedo índice para dibujar.');
   });
 </script>
 </body>
