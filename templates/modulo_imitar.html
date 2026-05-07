@@ -82,7 +82,8 @@
 <button id="btn-iniciar" onclick="arrancar()">▶ Tocar aquí para comenzar!</button>
 
 <script>
-// ── AUDIOS sincronizados - uno espera al otro ──
+let ocupado = false; // evita que correcto/incorrecto se llamen dos veces
+
 function audio(nombre) {
   return new Promise(resolve => {
     const a = new Audio('/static/audio/' + nombre + '.mp3');
@@ -124,6 +125,7 @@ function detectarGesto(lm) {
 
 async function iniciarMovimiento() {
   if (indice >= MOVIMIENTOS.length) { finJuego(); return; }
+  ocupado = false;
   const m = MOVIMIENTOS[indice];
   document.getElementById('mov-emoji').textContent = m.emoji;
   document.getElementById('mov-texto').textContent = m.instruccion;
@@ -132,13 +134,15 @@ async function iniciarMovimiento() {
   document.getElementById('estado').textContent = '👀 Escucha bien...';
   document.getElementById('estado').className = 'estado';
   document.getElementById('cuenta').textContent = '👂';
-  esperando = false; detectadoOk = false;
+  esperando = false;
+  detectadoOk = false;
   await audio(m.corto);
   await audio(m.largo);
-  cuenta();
+  await cuenta();
 }
 
 async function cuenta() {
+  ocupado = false;
   document.getElementById('estado').textContent = '⏳ Prepárate...';
   document.getElementById('cuenta').textContent = '...';
   await audio('preparate');
@@ -152,11 +156,14 @@ async function cuenta() {
   document.getElementById('estado').textContent = '🖐 Hazlo ahora!';
   await audio('ya');
   esperando = true;
-  setTimeout(() => { if (esperando) incorrecto(); }, 6000);
+  setTimeout(() => { if (esperando && !ocupado) incorrecto(); }, 6000);
 }
 
 async function correcto() {
+  if (ocupado) return;
+  ocupado = true;
   esperando = false;
+  clearTimeout(timerDet);
   puntos += 10;
   document.getElementById('puntos').textContent = puntos;
   document.getElementById('estado').textContent = '✅ Muy bien!';
@@ -164,10 +171,12 @@ async function correcto() {
   await audio('muy_bien');
   await audio('inteligente');
   indice++;
-  iniciarMovimiento();
+  await iniciarMovimiento();
 }
 
 async function incorrecto() {
+  if (ocupado) return;
+  ocupado = true;
   esperando = false;
   vidas = Math.max(0, vidas - 1);
   document.getElementById('vidas').textContent = '❤️'.repeat(vidas) + '🖤'.repeat(3 - vidas);
@@ -176,7 +185,7 @@ async function incorrecto() {
   await audio('no_preocupes');
   await audio('intenta');
   await audio(MOVIMIENTOS[indice].largo);
-  cuenta();
+  await cuenta();
 }
 
 async function finJuego() {
@@ -197,10 +206,9 @@ async function arrancar() {
   await audio('bienvenida_2');
   await audio('bienvenida_3');
   await audio('bienvenida_4');
-  iniciarMovimiento();
+  await iniciarMovimiento();
 }
 
-// ── CÁMARA Y MEDIAPIPE ──
 window.addEventListener('load', () => {
   const video  = document.getElementById('video');
   const canvas = document.getElementById('canvas');
@@ -237,14 +245,19 @@ window.addEventListener('load', () => {
             drawConnectors(ctx, lm, HAND_CONNECTIONS, { color:'#c084fc', lineWidth:3 });
             drawLandmarks(ctx, lm, { color:'#fff', lineWidth:1, radius:4 });
           }
-          if (esperando) {
+          if (esperando && !ocupado) {
             const ok = detectarGesto(lm);
-            if (ok && !detectadoOk) { detectadoOk=true; timerDet=setTimeout(correcto,800); }
-            else if (!ok) { detectadoOk=false; clearTimeout(timerDet); }
+            if (ok && !detectadoOk) {
+              detectadoOk = true;
+              timerDet = setTimeout(() => correcto(), 800);
+            } else if (!ok) {
+              detectadoOk = false;
+              clearTimeout(timerDet);
+            }
           }
         } else {
           badge.classList.remove('show');
-          detectadoOk=false;
+          detectadoOk = false;
         }
       });
       const cam = new Camera(video, {
