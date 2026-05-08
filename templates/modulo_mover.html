@@ -14,37 +14,38 @@
 
   .container{position:relative;z-index:10;width:100%;max-width:960px;padding:16px}
 
-  /* HEADER */
   .header{background:rgba(255,255,255,.97);border-radius:24px;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
   .header-left{display:flex;align-items:center;gap:12px}
   .back-btn{background:#f3f4f6;border:none;border-radius:50px;padding:8px 16px;font-family:'Nunito',sans-serif;font-weight:700;color:#555;cursor:pointer;font-size:.85rem;text-decoration:none}
   .header h2{font-size:1.1rem;font-weight:900;color:#16a34a}
   .puntos{background:linear-gradient(135deg,#4ade80,#16a34a);color:white;border-radius:50px;padding:6px 16px;font-weight:900;font-size:.9rem}
 
-  /* TABS */
   .tabs{display:flex;gap:12px;margin-bottom:16px}
   .tab{flex:1;padding:12px;border:none;border-radius:16px;font-family:'Nunito',sans-serif;font-weight:900;font-size:1rem;cursor:pointer;transition:all .3s}
   .tab.activa{background:white;color:#16a34a;box-shadow:0 4px 20px rgba(0,0,0,.2)}
   .tab.inactiva{background:rgba(255,255,255,.2);color:white}
 
-  /* INSTRUCCION */
   .instruccion-banner{background:rgba(255,255,255,.15);border-radius:16px;padding:14px 20px;margin-bottom:16px;text-align:center;color:white;font-weight:700;font-size:1rem;border:2px solid rgba(255,255,255,.3)}
 
-  /* ÁREA DE JUEGO */
+  /* Toast pequeño — reemplaza el overlay bloqueante */
+  .toast{position:fixed;top:24px;left:50%;transform:translateX(-50%) translateY(-80px);background:white;border-radius:20px;padding:14px 28px;font-family:'Nunito',sans-serif;font-weight:900;font-size:1.1rem;z-index:200;box-shadow:0 8px 30px rgba(0,0,0,.3);transition:transform .35s cubic-bezier(.34,1.56,.64,1);pointer-events:none;white-space:nowrap}
+  .toast.show{transform:translateX(-50%) translateY(0)}
+  .toast.correcto{border-left:6px solid #16a34a;color:#16a34a}
+  .toast.incorrecto{border-left:6px solid #ef4444;color:#ef4444}
+
   .juego-area{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
 
-  /* PANEL IZQUIERDO - ITEMS ARRASTRABLES */
   .panel-items{background:rgba(255,255,255,.97);border-radius:24px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
   .panel-titulo{font-size:.85rem;font-weight:900;color:#666;margin-bottom:14px;text-transform:uppercase;letter-spacing:1px}
   .items-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .item-drag{background:#f9fafb;border:3px dashed #d1d5db;border-radius:16px;padding:14px 10px;text-align:center;cursor:grab;transition:all .3s;user-select:none}
+
+  .item-drag{background:#f9fafb;border:3px dashed #d1d5db;border-radius:16px;padding:14px 10px;text-align:center;cursor:grab;transition:all .3s;user-select:none;touch-action:none}
   .item-drag:hover{border-color:#16a34a;background:#f0fdf4;transform:scale(1.05)}
   .item-drag.usado{opacity:.3;cursor:not-allowed;pointer-events:none}
   .item-drag.arrastrando{opacity:.5;transform:scale(.95)}
   .item-emoji{font-size:2.5rem;display:block;margin-bottom:4px}
   .item-nombre{font-size:.75rem;font-weight:900;color:#444}
 
-  /* PANEL DERECHO - DESTINOS */
   .panel-destinos{background:rgba(255,255,255,.97);border-radius:24px;padding:20px;box-shadow:0 8px 30px rgba(0,0,0,.3)}
   .destinos-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .destino{border-radius:16px;padding:14px 10px;text-align:center;border:3px dashed #d1d5db;transition:all .3s;min-height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center}
@@ -54,22 +55,19 @@
   @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
   .destino-sombra{font-size:2.2rem;filter:brightness(0);opacity:.25}
   .destino-nombre{font-size:.7rem;font-weight:900;color:#999;margin-top:4px}
-  .destino-check{font-size:1.8rem}
 
-  /* PROGRESO */
   .progreso-card{background:rgba(255,255,255,.97);border-radius:24px;padding:18px 24px;box-shadow:0 8px 30px rgba(0,0,0,.3);margin-bottom:16px}
   .progreso-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
   .progreso-header span{font-weight:900;color:#444;font-size:.9rem}
   .barra-bg{background:#e5e7eb;border-radius:50px;height:14px;overflow:hidden}
   .barra-fill{background:linear-gradient(135deg,#4ade80,#16a34a);height:100%;border-radius:50px;transition:width .5s ease}
 
-  /* BOTONES */
   .botones{display:flex;gap:12px;justify-content:space-between}
   .btn-reiniciar{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.4);border-radius:50px;padding:12px 24px;font-family:'Nunito',sans-serif;font-size:1rem;font-weight:900;color:white;cursor:pointer}
   .btn-siguiente{display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#4ade80,#16a34a);border:none;border-radius:50px;padding:12px 28px;font-family:'Nunito',sans-serif;font-size:1rem;font-weight:900;color:white;cursor:pointer;box-shadow:0 4px 15px rgba(0,0,0,.2)}
   .btn-siguiente:disabled{opacity:.5;cursor:not-allowed}
 
-  /* OVERLAY */
+  /* Overlay solo para pantalla final */
   .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.7);z-index:100;display:none;align-items:center;justify-content:center}
   .overlay.show{display:flex}
   .overlay-card{background:white;border-radius:32px;padding:40px;text-align:center;max-width:380px;animation:popIn .4s ease}
@@ -79,7 +77,6 @@
   .overlay-desc{font-size:1rem;color:#666;margin-bottom:24px}
   .overlay-btn{background:linear-gradient(135deg,#4ade80,#16a34a);border:none;border-radius:50px;padding:14px 36px;font-family:'Nunito',sans-serif;font-size:1.1rem;font-weight:900;color:white;cursor:pointer}
 
-  /* COLOR CHIPS */
   .color-chip{width:48px;height:48px;border-radius:50%;display:block;margin:0 auto 6px;border:3px solid rgba(0,0,0,.1)}
   .destino-color{width:40px;height:40px;border-radius:50%;border:3px solid rgba(0,0,0,.15)}
 </style>
@@ -87,8 +84,10 @@
 <body>
 <div class="stars" id="stars"></div>
 
+<!-- Toast — no bloquea la pantalla -->
+<div class="toast" id="toast"></div>
+
 <div class="container">
-  <!-- HEADER -->
   <div class="header">
     <div class="header-left">
       <a href="/" class="back-btn">← Menú</a>
@@ -97,18 +96,15 @@
     <div class="puntos">⭐ <span id="puntos">0</span> pts</div>
   </div>
 
-  <!-- TABS -->
   <div class="tabs">
     <button class="tab activa" id="tab-animales" onclick="cambiarTab('animales')">🐾 Animales</button>
     <button class="tab inactiva" id="tab-colores" onclick="cambiarTab('colores')">🎨 Colores</button>
   </div>
 
-  <!-- INSTRUCCION -->
   <div class="instruccion-banner" id="instruccion-banner">
     🎯 Arrastra cada animal hacia su sombra correcta
   </div>
 
-  <!-- JUEGO -->
   <div class="juego-area">
     <div class="panel-items">
       <div class="panel-titulo" id="panel-titulo">🐾 Animales para mover</div>
@@ -120,7 +116,6 @@
     </div>
   </div>
 
-  <!-- PROGRESO -->
   <div class="progreso-card">
     <div class="progreso-header">
       <span id="progreso-texto">0 de 5 completados</span>
@@ -131,7 +126,6 @@
     </div>
   </div>
 
-  <!-- BOTONES -->
   <div class="botones">
     <button class="btn-reiniciar" onclick="reiniciar()">🔄 Reiniciar</button>
     <button class="btn-siguiente" id="btn-siguiente" onclick="irAColores()" disabled>
@@ -140,7 +134,7 @@
   </div>
 </div>
 
-<!-- OVERLAY -->
+<!-- Overlay solo para pantalla de victoria final -->
 <div class="overlay" id="overlay">
   <div class="overlay-card">
     <span class="overlay-emoji" id="overlay-emoji">🎉</span>
@@ -151,194 +145,255 @@
 </div>
 
 <script>
-  // Estrellas
-  const sc=document.getElementById('stars');
-  for(let i=0;i<50;i++){
-    const s=document.createElement('div');s.className='star';
-    const sz=Math.random()*3+1;
-    s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;animation-delay:${Math.random()*3}s;animation-duration:${1.5+Math.random()*2}s;`;
+  // Estrellas decorativas
+  const sc = document.getElementById('stars');
+  for(let i = 0; i < 50; i++){
+    const s = document.createElement('div'); s.className = 'star';
+    const sz = Math.random() * 3 + 1;
+    s.style.cssText = `width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;animation-delay:${Math.random()*3}s;animation-duration:${1.5+Math.random()*2}s`;
     sc.appendChild(s);
   }
 
-  let animales=[], colores=[], modoActual='animales';
-  let completadosAnimales=0, completadosColores=0, puntos=0;
-  let itemArrastrando=null, idxArrastrando=null;
+  let animales = [], colores = [], modoActual = 'animales';
+  let completadosAnimales = 0, completadosColores = 0, puntos = 0;
+  let itemArrastrando = null, idxArrastrando = null;
+  let toastTimer = null;
+
+  // ── Toast no bloqueante ──
+  function mostrarToast(texto, tipo){
+    const t = document.getElementById('toast');
+    t.textContent = texto;
+    t.className = `toast ${tipo} show`;
+    if(toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 1600);
+  }
+
+  // ── Llamadas al servidor: silenciosas, no bloquean ──
+  function llamar(url){ fetch(url).catch(()=>{}); }
 
   async function cargarDatos(){
-    const ra = await fetch('/reconocer/animales');
-    animales = await ra.json();
-    const rc = await fetch('/reconocer/colores');
-    colores = await rc.json();
-    await fetch('/reconocer/instrucciones/animales');
+    try{
+      const ra = await fetch('/reconocer/animales');
+      animales = await ra.json();
+      const rc = await fetch('/reconocer/colores');
+      colores = await rc.json();
+    } catch(e){
+      // Si el servidor no responde usar datos de respaldo
+      animales = [
+        {id:0,emoji:'🐶',nombre:'Perro',  color_fondo:'#fef9c3'},
+        {id:1,emoji:'🐱',nombre:'Gato',   color_fondo:'#fce7f3'},
+        {id:2,emoji:'🐸',nombre:'Rana',   color_fondo:'#dcfce7'},
+        {id:3,emoji:'🦁',nombre:'León',   color_fondo:'#fef3c7'},
+        {id:4,emoji:'🐧',nombre:'Pingüino',color_fondo:'#e0f2fe'},
+      ];
+      colores = [
+        {id:0,nombre:'Rojo',  hex:'#ef4444'},
+        {id:1,nombre:'Azul',  hex:'#3b82f6'},
+        {id:2,nombre:'Verde', hex:'#22c55e'},
+        {id:3,nombre:'Amarillo',hex:'#eab308'},
+        {id:4,nombre:'Morado',hex:'#a855f7'},
+      ];
+    }
+    llamar('/reconocer/instrucciones/animales');
     renderAnimales();
   }
 
+  // ──────────────────────────────────────────
+  // RENDER ANIMALES
+  // ──────────────────────────────────────────
   function renderAnimales(){
-    modoActual='animales';
-    completadosAnimales=0;
-    const ig=document.getElementById('items-grid');
-    const dg=document.getElementById('destinos-grid');
-    ig.innerHTML=''; dg.innerHTML='';
-    document.getElementById('instruccion-banner').textContent='🎯 Arrastra cada animal hacia su sombra correcta';
-    document.getElementById('panel-titulo').textContent='🐾 Animales para mover';
-    document.getElementById('btn-siguiente').disabled=true;
-    actualizarProgreso(0,animales.length);
+    modoActual = 'animales';
+    completadosAnimales = 0;
+    const ig = document.getElementById('items-grid');
+    const dg = document.getElementById('destinos-grid');
+    ig.innerHTML = ''; dg.innerHTML = '';
+    document.getElementById('instruccion-banner').textContent = '🎯 Arrastra cada animal hacia su sombra correcta';
+    document.getElementById('panel-titulo').textContent = '🐾 Animales para mover';
+    document.getElementById('btn-siguiente').disabled = true;
+    document.getElementById('btn-siguiente').textContent = '🎨 Ir a Colores ›';
+    document.getElementById('btn-siguiente').onclick = irAColores;
+    actualizarProgreso(0, animales.length);
 
-    // Mezclar destinos
-    const shuffled=[...animales].sort(()=>Math.random()-.5);
+    const shuffled = [...animales].sort(() => Math.random() - .5);
 
-    animales.forEach((a,i)=>{
-      // Item arrastrable
-      const div=document.createElement('div');
-      div.className='item-drag';
-      div.draggable=true;
-      div.dataset.idx=i;
-      div.innerHTML=`<span class="item-emoji">${a.emoji}</span><span class="item-nombre">${a.nombre}</span>`;
-      div.addEventListener('dragstart',e=>{itemArrastrando=div;idxArrastrando=i;div.classList.add('arrastrando');});
-      div.addEventListener('dragend',()=>div.classList.remove('arrastrando'));
+    // Items arrastrables
+    animales.forEach((a, i) => {
+      const div = document.createElement('div');
+      div.className = 'item-drag';
+      div.draggable = true;
+      div.dataset.idx = i;
+      div.innerHTML = `<span class="item-emoji">${a.emoji}</span><span class="item-nombre">${a.nombre}</span>`;
+      agregarEventosDrag(div, i);
       ig.appendChild(div);
     });
 
-    shuffled.forEach((a,i)=>{
-      const originalIdx=animales.findIndex(x=>x.id===a.id);
-      const div=document.createElement('div');
-      div.className='destino';
-      div.dataset.esperaIdx=originalIdx;
-      div.style.background=a.color_fondo;
-      div.innerHTML=`<span class="destino-sombra">${a.emoji}</span><span class="destino-nombre">${a.nombre}</span>`;
-      div.addEventListener('dragover',e=>{e.preventDefault();div.classList.add('hover-activo');});
-      div.addEventListener('dragleave',()=>div.classList.remove('hover-activo'));
-      div.addEventListener('drop',e=>{
-        e.preventDefault();
-        div.classList.remove('hover-activo');
-        if(idxArrastrando===null) return;
-        const esperado=parseInt(div.dataset.esperaIdx);
-        if(idxArrastrando===esperado){
-          // CORRECTO
-          div.classList.add('correcto');
-          div.innerHTML=`<span class="destino-check">${animales[idxArrastrando].emoji}</span><span class="destino-nombre" style="color:#16a34a;font-weight:900">${animales[idxArrastrando].nombre}</span>`;
-          itemArrastrando.classList.add('usado');
-          puntos+=10;
-          document.getElementById('puntos').textContent=puntos;
-          fetch(`/reconocer/animal/correcto/${idxArrastrando}`);
-          completadosAnimales++;
-          actualizarProgreso(completadosAnimales,animales.length);
-          mostrarOverlay('🎉',`¡Muy bien!`,`¡Ese es el ${animales[idxArrastrando].nombre}!`,true);
-          if(completadosAnimales===animales.length){
-            setTimeout(()=>{document.getElementById('btn-siguiente').disabled=false;},1500);
-          }
-        } else {
-          // INCORRECTO
-          div.classList.add('incorrecto');
-          fetch('/reconocer/animal/incorrecto');
-          mostrarOverlay('😅','¡Inténtalo de nuevo!','Ese no es el lugar correcto',false);
-          setTimeout(()=>div.classList.remove('incorrecto'),600);
+    // Destinos
+    shuffled.forEach(a => {
+      const originalIdx = animales.findIndex(x => x.id === a.id);
+      const div = document.createElement('div');
+      div.className = 'destino';
+      div.dataset.esperaIdx = originalIdx;
+      div.style.background = a.color_fondo || '#f9fafb';
+      div.innerHTML = `<span class="destino-sombra">${a.emoji}</span><span class="destino-nombre">${a.nombre}</span>`;
+      agregarEventosDrop(div, () => {
+        // Correcto
+        div.classList.add('correcto');
+        div.innerHTML = `<span style="font-size:2.2rem">${animales[idxArrastrando].emoji}</span><span class="destino-nombre" style="color:#16a34a;font-weight:900">${animales[idxArrastrando].nombre}</span>`;
+        itemArrastrando.classList.add('usado');
+        puntos += 10;
+        document.getElementById('puntos').textContent = puntos;
+        llamar(`/reconocer/animal/correcto/${idxArrastrando}`);
+        completadosAnimales++;
+        actualizarProgreso(completadosAnimales, animales.length);
+        mostrarToast(`✅ ¡Ese es el ${animales[idxArrastrando].nombre}!`, 'correcto');
+        if(completadosAnimales === animales.length){
+          setTimeout(() => { document.getElementById('btn-siguiente').disabled = false; }, 800);
         }
-        itemArrastrando=null; idxArrastrando=null;
+      }, () => {
+        // Incorrecto
+        div.classList.add('incorrecto');
+        llamar('/reconocer/animal/incorrecto');
+        mostrarToast('😅 ¡Inténtalo de nuevo!', 'incorrecto');
+        setTimeout(() => div.classList.remove('incorrecto'), 600);
       });
       dg.appendChild(div);
     });
   }
 
+  // ──────────────────────────────────────────
+  // RENDER COLORES
+  // ──────────────────────────────────────────
   function renderColores(){
-    modoActual='colores';
-    completadosColores=0;
-    const ig=document.getElementById('items-grid');
-    const dg=document.getElementById('destinos-grid');
-    ig.innerHTML=''; dg.innerHTML='';
-    document.getElementById('instruccion-banner').textContent='🎨 Arrastra cada color hacia su lugar correcto';
-    document.getElementById('panel-titulo').textContent='🎨 Colores para mover';
-    document.getElementById('btn-siguiente').textContent='🏆 Completar juego';
-    document.getElementById('btn-siguiente').onclick=completarJuego;
-    document.getElementById('btn-siguiente').disabled=true;
-    actualizarProgreso(0,colores.length);
-    fetch('/reconocer/instrucciones/colores');
+    modoActual = 'colores';
+    completadosColores = 0;
+    const ig = document.getElementById('items-grid');
+    const dg = document.getElementById('destinos-grid');
+    ig.innerHTML = ''; dg.innerHTML = '';
+    document.getElementById('instruccion-banner').textContent = '🎨 Arrastra cada color hacia su lugar correcto';
+    document.getElementById('panel-titulo').textContent = '🎨 Colores para mover';
+    document.getElementById('btn-siguiente').textContent = '🏆 Completar juego';
+    document.getElementById('btn-siguiente').onclick = completarJuego;
+    document.getElementById('btn-siguiente').disabled = true;
+    actualizarProgreso(0, colores.length);
+    llamar('/reconocer/instrucciones/colores');
 
-    const shuffled=[...colores].sort(()=>Math.random()-.5);
+    const shuffled = [...colores].sort(() => Math.random() - .5);
 
-    colores.forEach((c,i)=>{
-      const div=document.createElement('div');
-      div.className='item-drag';
-      div.draggable=true;
-      div.dataset.idx=i;
-      div.innerHTML=`<span class="color-chip" style="background:${c.hex}"></span><span class="item-nombre">${c.nombre}</span>`;
-      div.addEventListener('dragstart',e=>{itemArrastrando=div;idxArrastrando=i;div.classList.add('arrastrando');});
-      div.addEventListener('dragend',()=>div.classList.remove('arrastrando'));
+    colores.forEach((c, i) => {
+      const div = document.createElement('div');
+      div.className = 'item-drag';
+      div.draggable = true;
+      div.dataset.idx = i;
+      div.innerHTML = `<span class="color-chip" style="background:${c.hex}"></span><span class="item-nombre">${c.nombre}</span>`;
+      agregarEventosDrag(div, i);
       ig.appendChild(div);
     });
 
-    shuffled.forEach((c,i)=>{
-      const originalIdx=colores.findIndex(x=>x.id===c.id);
-      const div=document.createElement('div');
-      div.className='destino';
-      div.dataset.esperaIdx=originalIdx;
-      div.style.background='#f9fafb';
-      div.innerHTML=`<span class="destino-color" style="background:${c.hex};opacity:.2;display:block;margin:0 auto 6px;width:40px;height:40px;border-radius:50%"></span><span class="destino-nombre">${c.nombre}</span>`;
-      div.addEventListener('dragover',e=>{e.preventDefault();div.classList.add('hover-activo');});
-      div.addEventListener('dragleave',()=>div.classList.remove('hover-activo'));
-      div.addEventListener('drop',e=>{
-        e.preventDefault();
-        div.classList.remove('hover-activo');
-        if(idxArrastrando===null) return;
-        const esperado=parseInt(div.dataset.esperaIdx);
-        if(idxArrastrando===esperado){
-          div.classList.add('correcto');
-          div.innerHTML=`<span style="display:block;width:44px;height:44px;border-radius:50%;background:${colores[idxArrastrando].hex};margin:0 auto 6px;border:3px solid rgba(0,0,0,.15)"></span><span class="destino-nombre" style="color:#16a34a;font-weight:900">${colores[idxArrastrando].nombre}</span>`;
-          itemArrastrando.classList.add('usado');
-          puntos+=10;
-          document.getElementById('puntos').textContent=puntos;
-          fetch(`/reconocer/color/correcto/${idxArrastrando}`);
-          completadosColores++;
-          actualizarProgreso(completadosColores,colores.length);
-          mostrarOverlay('🎨',`¡Correcto!`,`¡Ese es el color ${colores[idxArrastrando].nombre}!`,true);
-          if(completadosColores===colores.length){
-            setTimeout(()=>{document.getElementById('btn-siguiente').disabled=false;},1500);
-          }
-        } else {
-          div.classList.add('incorrecto');
-          fetch('/reconocer/color/incorrecto');
-          mostrarOverlay('😅','¡Inténtalo de nuevo!','Ese color no va ahí',false);
-          setTimeout(()=>div.classList.remove('incorrecto'),600);
+    shuffled.forEach(c => {
+      const originalIdx = colores.findIndex(x => x.id === c.id);
+      const div = document.createElement('div');
+      div.className = 'destino';
+      div.dataset.esperaIdx = originalIdx;
+      div.style.background = '#f9fafb';
+      div.innerHTML = `<span style="display:block;width:40px;height:40px;border-radius:50%;background:${c.hex};opacity:.2;margin:0 auto 6px;border:3px solid rgba(0,0,0,.15)"></span><span class="destino-nombre">${c.nombre}</span>`;
+      agregarEventosDrop(div, () => {
+        div.classList.add('correcto');
+        div.innerHTML = `<span style="display:block;width:44px;height:44px;border-radius:50%;background:${colores[idxArrastrando].hex};margin:0 auto 6px;border:3px solid rgba(0,0,0,.15)"></span><span class="destino-nombre" style="color:#16a34a;font-weight:900">${colores[idxArrastrando].nombre}</span>`;
+        itemArrastrando.classList.add('usado');
+        puntos += 10;
+        document.getElementById('puntos').textContent = puntos;
+        llamar(`/reconocer/color/correcto/${idxArrastrando}`);
+        completadosColores++;
+        actualizarProgreso(completadosColores, colores.length);
+        mostrarToast(`✅ ¡Ese es el color ${colores[idxArrastrando].nombre}!`, 'correcto');
+        if(completadosColores === colores.length){
+          setTimeout(() => { document.getElementById('btn-siguiente').disabled = false; }, 800);
         }
-        itemArrastrando=null; idxArrastrando=null;
+      }, () => {
+        div.classList.add('incorrecto');
+        llamar('/reconocer/color/incorrecto');
+        mostrarToast('😅 ¡Ese color no va ahí!', 'incorrecto');
+        setTimeout(() => div.classList.remove('incorrecto'), 600);
       });
       dg.appendChild(div);
     });
   }
 
-  function actualizarProgreso(completados,total){
-    const pct=(completados/total)*100;
-    document.getElementById('barra-fill').style.width=pct+'%';
-    document.getElementById('progreso-texto').textContent=`${completados} de ${total} completados`;
-    const emojis=['🌱','🌿','🌳','🌲','🎄'];
-    let e='';
-    for(let i=0;i<total;i++) e+=(i<completados)?'✅':'🌱';
-    document.getElementById('progreso-emoji').textContent=e;
+  // ──────────────────────────────────────────
+  // HELPERS DRAG & DROP — separados para claridad
+  // ──────────────────────────────────────────
+  function agregarEventosDrag(div, i){
+    div.addEventListener('dragstart', e => {
+      itemArrastrando = div;
+      idxArrastrando  = i;
+      div.classList.add('arrastrando');
+      // Necesario para Firefox
+      e.dataTransfer.setData('text/plain', i);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    div.addEventListener('dragend', () => div.classList.remove('arrastrando'));
+  }
+
+  function agregarEventosDrop(div, onCorrecto, onIncorrecto){
+    div.addEventListener('dragenter', e => {
+      e.preventDefault();
+      if(!div.classList.contains('correcto')) div.classList.add('hover-activo');
+    });
+    div.addEventListener('dragover', e => {
+      e.preventDefault();            // ← CRÍTICO: sin esto el drop no funciona
+      e.dataTransfer.dropEffect = 'move';
+    });
+    div.addEventListener('dragleave', e => {
+      // Solo quitar hover si realmente salimos del destino (no de un hijo)
+      if(!div.contains(e.relatedTarget)) div.classList.remove('hover-activo');
+    });
+    div.addEventListener('drop', e => {
+      e.preventDefault();
+      div.classList.remove('hover-activo');
+      if(div.classList.contains('correcto')) return; // ya resuelto
+      if(itemArrastrando === null || idxArrastrando === null) return;
+      const esperado = parseInt(div.dataset.esperaIdx);
+      if(idxArrastrando === esperado){
+        onCorrecto();
+      } else {
+        onIncorrecto();
+      }
+      // Limpiar referencias DESPUÉS de usarlas en los callbacks
+      itemArrastrando = null;
+      idxArrastrando  = null;
+    });
+  }
+
+  // ──────────────────────────────────────────
+  // UTILIDADES
+  // ──────────────────────────────────────────
+  function actualizarProgreso(completados, total){
+    const pct = (completados / total) * 100;
+    document.getElementById('barra-fill').style.width = pct + '%';
+    document.getElementById('progreso-texto').textContent = `${completados} de ${total} completados`;
+    let e = '';
+    for(let i = 0; i < total; i++) e += i < completados ? '✅' : '🌱';
+    document.getElementById('progreso-emoji').textContent = e;
   }
 
   function cambiarTab(tab){
-    document.getElementById('tab-animales').className='tab '+(tab==='animales'?'activa':'inactiva');
-    document.getElementById('tab-colores').className='tab '+(tab==='colores'?'activa':'inactiva');
+    document.getElementById('tab-animales').className = 'tab ' + (tab === 'animales' ? 'activa' : 'inactiva');
+    document.getElementById('tab-colores').className  = 'tab ' + (tab === 'colores'  ? 'activa' : 'inactiva');
   }
 
   function irAColores(){
     cambiarTab('colores');
-    cerrarOverlay();
     renderColores();
   }
 
   function completarJuego(){
-    fetch('/reconocer/completado');
-    mostrarOverlay('🏆','¡Juego Completado!',`¡Increíble! Lograste ${puntos} puntos`,true);
-    document.getElementById('barra-fill').style.width='100%';
-  }
-
-  function mostrarOverlay(emoji,titulo,desc,correcto){
-    document.getElementById('overlay-emoji').textContent=emoji;
-    document.getElementById('overlay-title').textContent=titulo;
-    document.getElementById('overlay-title').style.color=correcto?'#16a34a':'#dc2626';
-    document.getElementById('overlay-desc').textContent=desc;
+    llamar('/reconocer/completado');
+    document.getElementById('overlay-emoji').textContent  = '🏆';
+    document.getElementById('overlay-title').textContent  = '¡Juego Completado!';
+    document.getElementById('overlay-title').style.color  = '#16a34a';
+    document.getElementById('overlay-desc').textContent   = `¡Increíble! Lograste ${puntos} puntos`;
     document.getElementById('overlay').classList.add('show');
+    document.getElementById('barra-fill').style.width = '100%';
   }
 
   function cerrarOverlay(){
@@ -346,10 +401,10 @@
   }
 
   function reiniciar(){
-    puntos=0;
-    document.getElementById('puntos').textContent='0';
+    puntos = 0;
+    document.getElementById('puntos').textContent = '0';
     cambiarTab('animales');
-    fetch('/reconocer/instrucciones/animales');
+    llamar('/reconocer/instrucciones/animales');
     renderAnimales();
   }
 
