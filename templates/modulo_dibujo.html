@@ -281,7 +281,6 @@ const FIGURAS_INFO = {
 function reconocerFigura(puntos){
   if(puntos.length < 10) return null;
 
-  // Bounding box
   const xs = puntos.map(p=>p.x), ys = puntos.map(p=>p.y);
   const minX=Math.min(...xs), maxX=Math.max(...xs);
   const minY=Math.min(...ys), maxY=Math.max(...ys);
@@ -289,105 +288,89 @@ function reconocerFigura(puntos){
   const cx = (minX+maxX)/2, cy = (minY+maxY)/2;
   if(W < 40 || H < 40) return null;
 
-  const ratio = W / H; // ancho/alto
+  const ratio = W / H;
 
-  // Cierre del trazo (inicio cerca del fin)
+  // Cierre del trazo
   const p0 = puntos[0], pN = puntos[puntos.length-1];
   const distCierre = Math.sqrt((p0.x-pN.x)**2 + (p0.y-pN.y)**2);
   const diagonal   = Math.sqrt(W*W + H*H);
-  const cerrado    = distCierre < diagonal * 0.4;
+  const cerrado    = distCierre < diagonal * 0.45;
 
-  // Perímetro real del trazo
-  let perimetro = 0;
-  for(let i=1;i<puntos.length;i++){
-    const dx=puntos[i].x-puntos[i-1].x, dy=puntos[i].y-puntos[i-1].y;
-    perimetro += Math.sqrt(dx*dx+dy*dy);
-  }
-
-  // Circularidad: qué tan parecido es a un círculo perfecto
-  // Círculo perfecto = perimetro / (2*pi*radio) ≈ 1
-  const radio = (W+H)/4;
-  const circularidad = perimetro / (2*Math.PI*radio);
-  // cercano a 1 = círculo, > 1.4 = figura más compleja
-
-  // Esquinas con umbral generoso
+  // Esquinas
   const esquinas = contarEsquinas(puntos);
 
-  // ─── CÍRCULO ───
-  // Trazo que da vueltas, circularidad ~1, cerrado, ratio ~1
-  if(cerrado && circularidad < 1.5 && ratio > 0.5 && ratio < 2.0 && esquinas <= 3){
+  // ── CÍRCULO: distancias al centro muy uniformes ──
+  const distancias = puntos.map(p=>Math.sqrt((p.x-cx)**2+(p.y-cy)**2));
+  const distMedia  = distancias.reduce((a,b)=>a+b,0)/distancias.length;
+  const distStd    = Math.sqrt(distancias.reduce((a,b)=>a+(b-distMedia)**2,0)/distancias.length);
+  const distCV     = distStd / distMedia; // bajo = círculo, alto = figura angular
+  if(cerrado && distCV < 0.30 && esquinas <= 2){
     return 'circulo';
   }
 
-  // ─── TRIÁNGULO ───
-  // Cerrado, 3 lados = 2-3 esquinas marcadas, cualquier ratio
-  if(cerrado && esquinas >= 2 && esquinas <= 4 && circularidad > 1.3){
-    // Diferenciar del cuadrado: triángulo suele ser más alto o más ancho
-    if(ratio < 0.75 || ratio > 1.35 || esquinas <= 3) return 'triangulo';
+  // ── TRIÁNGULO: 3 esquinas claras ──
+  if(cerrado && esquinas >= 2 && esquinas <= 4){
+    // El triángulo tiene un vértice arriba o abajo muy marcado
+    const topP = puntos.reduce((a,b)=>a.y<b.y?a:b);
+    const botP = puntos.reduce((a,b)=>a.y>b.y?a:b);
+    const topCentrado = Math.abs(topP.x - cx) < W*0.45;
+    const botCentrado = Math.abs(botP.x - cx) < W*0.45;
+    if(topCentrado || botCentrado) return 'triangulo';
   }
 
-  // ─── CUADRADO ───
-  // Cerrado, 4 esquinas, ratio ~1
-  if(cerrado && esquinas >= 3 && esquinas <= 6 && ratio > 0.6 && ratio < 1.6 && circularidad > 1.2){
+  // ── CUADRADO: ~4 esquinas, ratio ~1 ──
+  if(cerrado && esquinas >= 3 && esquinas <= 6 && ratio > 0.6 && ratio < 1.7){
     return 'cuadrado';
   }
 
-  // ─── RECTÁNGULO ───
-  // Cerrado, ratio muy diferente de 1
+  // ── RECTÁNGULO: ~4 esquinas, ratio lejano de 1 ──
   if(cerrado && esquinas >= 3 && (ratio < 0.55 || ratio > 1.8)){
     return 'rectangulo';
   }
 
-  // ─── DIAMANTE / ROMBO ───
-  // Cerrado, 4 esquinas, puntos extremos en los 4 lados
-  if(cerrado && esquinas >= 3 && esquinas <= 5 && ratio > 0.5 && ratio < 1.8){
-    // Verificar que el punto más alto y más bajo estén centrados
+  // ── DIAMANTE: picos en los 4 extremos centrados ──
+  if(cerrado && esquinas >= 3 && esquinas <= 6 && ratio > 0.4 && ratio < 2.5){
     const topP  = puntos.reduce((a,b)=>a.y<b.y?a:b);
     const botP  = puntos.reduce((a,b)=>a.y>b.y?a:b);
     const izqP  = puntos.reduce((a,b)=>a.x<b.x?a:b);
     const derP  = puntos.reduce((a,b)=>a.x>b.x?a:b);
-    const centradoV = Math.abs(topP.x - cx) < W*0.4 && Math.abs(botP.x - cx) < W*0.4;
-    const centradoH = Math.abs(izqP.y - cy) < H*0.4 && Math.abs(derP.y - cy) < H*0.4;
-    if(centradoV && centradoH) return 'diamante';
+    const cvTop = Math.abs(topP.x-cx)/W;
+    const cvBot = Math.abs(botP.x-cx)/W;
+    const cvIzq = Math.abs(izqP.y-cy)/H;
+    const cvDer = Math.abs(derP.y-cy)/H;
+    if(cvTop<0.35 && cvBot<0.35 && cvIzq<0.35 && cvDer<0.35) return 'diamante';
   }
 
-  // ─── ESTRELLA ───
-  // Muchos cambios de dirección, cerrado
-  if(cerrado && esquinas >= 6){
+  // ── ESTRELLA: muchas esquinas ──
+  if(cerrado && esquinas >= 7){
     return 'estrella';
   }
 
-  // ─── CORAZÓN ───
-  // Cerrado, ancho > alto, parte superior con dos lóbulos
-  if(cerrado && ratio > 0.7 && ratio < 2.2){
+  // ── CORAZÓN: parte superior con lóbulos a ambos lados ──
+  if(cerrado && ratio > 0.6 && ratio < 2.5){
     const mitadSup = puntos.filter(p=>p.y < cy);
     if(mitadSup.length > 4){
-      const xsSup = mitadSup.map(p=>p.x);
-      const spreadSup = Math.max(...xsSup) - Math.min(...xsSup);
-      // Verifica que la mitad superior tenga puntos a la izquierda y derecha del centro
-      const izqSup = mitadSup.filter(p=>p.x < cx-W*0.1).length;
-      const derSup = mitadSup.filter(p=>p.x > cx+W*0.1).length;
-      if(izqSup > 2 && derSup > 2 && spreadSup > W*0.5) return 'corazon';
+      const izqSup = mitadSup.filter(p=>p.x < cx-W*0.12).length;
+      const derSup = mitadSup.filter(p=>p.x > cx+W*0.12).length;
+      if(izqSup > 3 && derSup > 3) return 'corazon';
     }
   }
 
-  // ─── LUNA ───
-  // Cerrado, forma cóncava (C)
-  if(cerrado && (ratio < 0.6 || ratio > 1.7)){
-    const puntosIzq = puntos.filter(p=>p.x < cx);
-    const puntosDer = puntos.filter(p=>p.x > cx);
-    if(puntosIzq.length < puntos.length*0.2 || puntosDer.length < puntos.length*0.2)
-      return 'luna';
+  // ── LUNA: trazo en forma de C (puntos concentrados en un lado) ──
+  if(cerrado){
+    const izq = puntos.filter(p=>p.x < cx-W*0.1).length;
+    const der = puntos.filter(p=>p.x > cx+W*0.1).length;
+    const proporcion = Math.min(izq,der) / Math.max(izq,der);
+    if(proporcion < 0.25) return 'luna';
   }
 
-  // ─── HEXÁGONO ───
-  if(cerrado && esquinas >= 5 && esquinas <= 8 && ratio > 0.6 && ratio < 1.5){
+  // ── HEXÁGONO: 5-7 esquinas, ratio ~1 ──
+  if(cerrado && esquinas >= 5 && esquinas <= 7 && ratio > 0.5 && ratio < 1.8){
     return 'hexagono';
   }
 
-  // ─── FLECHA ───
-  // No cerrado, alargado
-  if(!cerrado && (ratio > 1.8 || ratio < 0.4) && esquinas >= 2){
+  // ── FLECHA: no cerrado, alargado ──
+  if(!cerrado && (ratio > 2.0 || ratio < 0.5) && esquinas >= 2){
     return 'flecha';
   }
 
@@ -420,7 +403,8 @@ const COLORES_VIVOS = ['#ff4757','#ff6b81','#ffa502','#eccc68','#2ed573','#1e90f
 
 function crearFiguraSVG(tipo, cx, cy, w, h, col){
   const c = col || COLORES_VIVOS[Math.floor(Math.random()*COLORES_VIVOS.length)];
-  const size = Math.max(w,h,80);
+  // Tamaño proporcional al trazo, con mínimo 80 y máximo 220px
+  const size = Math.min(Math.max(Math.max(w,h), 80), 220);
   const s2 = size/2;
   let svgInner = '';
 
