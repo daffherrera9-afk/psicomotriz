@@ -115,7 +115,7 @@ function smoothPos(x,y){posHistory.push({x,y});if(posHistory.length>SMOOTH)posHi
 function soloIndice(lm){return lm[8].y<lm[6].y-0.01&&lm[12].y>lm[10].y-0.02&&lm[16].y>lm[14].y-0.02&&lm[20].y>lm[18].y-0.02;}
 function esPinza(lm){const dx=lm[8].x-lm[4].x,dy=lm[8].y-lm[4].y;return Math.sqrt(dx*dx+dy*dy)<0.09;}
 
-// ===================== RECONOCIMIENTO REESCRITO =====================
+// ===================== RECONOCIMIENTO =====================
 const FIGURAS_INFO={
   circulo:   {emoji:'⭕',nombre:'¡Un Círculo!'},
   cuadrado:  {emoji:'🟦',nombre:'¡Un Cuadrado!'},
@@ -129,7 +129,6 @@ const FIGURAS_INFO={
 function reconocerFigura(pts){
   if(pts.length<10) return null;
 
-  // Bounding box
   const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
   const x0=Math.min(...xs), x1=Math.max(...xs);
   const y0=Math.min(...ys), y1=Math.max(...ys);
@@ -139,40 +138,50 @@ function reconocerFigura(pts){
 
   const ratio=W/H;
 
-  // Cierre del trazo
   const dCierre=Math.hypot(pts[0].x-pts[pts.length-1].x, pts[0].y-pts[pts.length-1].y);
   const diag=Math.hypot(W,H);
   const cerrado=dCierre<diag*0.45;
 
-  // CV de distancias al centro (0=círculo, alto=angular)
   const dists=pts.map(p=>Math.hypot(p.x-cx,p.y-cy));
   const dM=dists.reduce((a,b)=>a+b,0)/dists.length;
   const dStd=Math.sqrt(dists.reduce((a,b)=>a+(b-dM)**2,0)/dists.length);
   const CV=dStd/dM;
 
-  // Esquinas
   const esq=contarEsquinas(pts);
 
-  // Perímetro y compacidad
   let perim=0;
   for(let i=1;i<pts.length;i++) perim+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);
-  const compact=(W*H)/(perim*perim); // alto=compacto(círculo/cuadrado), bajo=estrella
+  const compact=(W*H)/(perim*perim);
 
   // ─────────────────────────────────────────────────
-  // 1. CÍRCULO
-  //    CV muy bajo (uniforme) + pocas esquinas + compacto
+  // 1. CÍRCULO — lógica reforzada anti-corazón
+  //
+  //  CAMBIOS vs versión anterior:
+  //  a) compact > 0.055 (antes 0.04) — el corazón es menos compacto
+  //     por sus dos lóbulos que alargan el perímetro
+  //  b) ratio entre 0.75 y 1.35 — el círculo es casi cuadrado en bbox;
+  //     el corazón suele ser más ancho que alto (ratio > 1.2)
+  //  c) Check anti-corazón: si hay muchos puntos arriba del centro
+  //     bien distribuidos a ambos lados → NO es círculo, es corazón
+  //  d) Se eliminó el fallback permisivo del final (CV < 0.28)
+  //     que era la causa principal de la confusión
   // ─────────────────────────────────────────────────
-  if(cerrado && CV<0.18 && esq<=3 && compact>0.04){
+  if(cerrado && CV<0.18 && esq<=3 && compact>0.055 && ratio>0.75 && ratio<1.35){
+    // Anti-corazón: el corazón tiene muchos puntos arriba a ambos lados
+    const sup=pts.filter(p=>p.y < cy - H*0.05);
+    if(sup.length > 6){
+      const lSup=sup.filter(p=>p.x < cx - W*0.12).length;
+      const rSup=sup.filter(p=>p.x > cx + W*0.12).length;
+      const esCorazon = lSup > 4 && rSup > 4;
+      if(esCorazon) return null; // no detectar como círculo, seguir evaluando
+    }
     return 'circulo';
   }
 
   // ─────────────────────────────────────────────────
-  // 2. TRIÁNGULO
-  //    3 lados = exactamente 2-3 esquinas reales
-  //    ratio no demasiado extremo
+  // 2. TRIÁNGULO — sin cambios
   // ─────────────────────────────────────────────────
   if(cerrado && esq>=2 && esq<=4 && CV>=0.18 && compact>0.025 && ratio<2.2){
-    // al menos un vértice debe estar centrado en su eje
     const top=pts.reduce((a,b)=>a.y<b.y?a:b);
     const bot=pts.reduce((a,b)=>a.y>b.y?a:b);
     const izq=pts.reduce((a,b)=>a.x<b.x?a:b);
@@ -184,33 +193,28 @@ function reconocerFigura(pts){
   }
 
   // ─────────────────────────────────────────────────
-  // 3. CUADRADO
-  //    ratio ~1, esquinas marcadas, no es círculo
+  // 3. CUADRADO — sin cambios
   // ─────────────────────────────────────────────────
   if(cerrado && ratio>=0.65 && ratio<=1.55 && esq>=3 && esq<=8 && CV>=0.18){
     return 'cuadrado';
   }
 
   // ─────────────────────────────────────────────────
-  // 4. RECTÁNGULO
-  //    ratio muy diferente de 1
+  // 4. RECTÁNGULO — sin cambios
   // ─────────────────────────────────────────────────
   if(cerrado && (ratio<0.55||ratio>1.65) && esq>=3 && CV>=0.18){
     return 'rectangulo';
   }
 
   // ─────────────────────────────────────────────────
-  // 5. ESTRELLA
-  //    CV alto, muchas esquinas, poco compacto (picos y valles)
+  // 5. ESTRELLA — sin cambios
   // ─────────────────────────────────────────────────
   if(cerrado && CV>0.33 && esq>=5 && compact<0.035){
     return 'estrella';
   }
 
   // ─────────────────────────────────────────────────
-  // 6. CORAZÓN
-  //    Mitad superior tiene puntos a ambos lados del centro,
-  //    parte inferior se estrecha hacia el centro
+  // 6. CORAZÓN — sin cambios
   // ─────────────────────────────────────────────────
   if(cerrado && ratio>0.55 && ratio<1.8 && CV>=0.18){
     const sup=pts.filter(p=>p.y<cy);
@@ -224,8 +228,7 @@ function reconocerFigura(pts){
   }
 
   // ─────────────────────────────────────────────────
-  // 7. DIAMANTE
-  //    Los 4 extremos alineados con los ejes del centro
+  // 7. DIAMANTE — sin cambios
   // ─────────────────────────────────────────────────
   if(cerrado && CV>=0.18){
     const top=pts.reduce((a,b)=>a.y<b.y?a:b);
@@ -238,16 +241,13 @@ function reconocerFigura(pts){
     }
   }
 
-  // ─────────────────────────────────────────────────
-  // Fallback: círculo imperfecto
-  // ─────────────────────────────────────────────────
-  if(cerrado && CV<0.28 && esq<=5) return 'circulo';
+  // NOTA: Se eliminó el fallback "circulo imperfecto" (CV<0.28)
+  // que era la causa de que el corazón se confundiera con círculo.
 
   return null;
 }
 
 function contarEsquinas(pts){
-  // Reducir a ~40 puntos
   const step=Math.max(1,Math.floor(pts.length/40));
   const sub=[];
   for(let i=0;i<pts.length;i+=step) sub.push(pts[i]);
@@ -262,7 +262,6 @@ function contarEsquinas(pts){
     angs.push(Math.acos(Math.max(-1,Math.min(1,(dx1*dx2+dy1*dy2)/(l1*l2)))));
   }
 
-  // Picos locales > 0.75 rad con zona de silencio
   const silencio=Math.max(2,Math.floor(angs.length/12));
   let picos=0, ultimo=-silencio*2;
   for(let i=0;i<angs.length;i++){
