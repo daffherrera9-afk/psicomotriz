@@ -19,26 +19,14 @@
   .btn-guardar{background:rgba(251,191,36,.9);color:#000}
   video{position:fixed;top:0;left:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);z-index:0;opacity:0.55}
   #canvas-draw{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none}
-  #canvas-trace{position:fixed;top:0;left:0;width:100%;height:100%;z-index:2;pointer-events:none}
-  .figura-flotante{position:fixed;z-index:50;pointer-events:none;transform-origin:center center;filter:drop-shadow(0 0 18px currentColor);transition:filter 0.2s}
-  .figura-flotante.agarrada{filter:drop-shadow(0 0 35px currentColor) brightness(1.4)}
-  #cursor{position:fixed;border-radius:50%;pointer-events:none;z-index:200;transform:translate(-50%,-50%);display:none;transition:width .1s,height .1s}
-  #cursor-pinza{position:fixed;pointer-events:none;z-index:200;transform:translate(-50%,-50%);display:none;font-size:2rem;line-height:1}
+  #cursor{position:fixed;border-radius:50%;pointer-events:none;z-index:200;transform:translate(-50%,-50%);display:none}
   .instruccion{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.85);color:white;padding:12px 28px;border-radius:50px;font-weight:700;font-size:.95rem;z-index:100;white-space:nowrap;border:2px solid rgba(255,255,255,.15)}
-  #mensaje-figura{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);background:linear-gradient(135deg,#ff6b6b,#ffd93d,#6bcb77,#4d96ff);background-size:300% 300%;animation:gradientShift 2s ease infinite;color:white;font-family:'Fredoka One',cursive;font-size:2.8rem;padding:20px 45px;border-radius:30px;z-index:500;text-align:center;pointer-events:none;box-shadow:0 0 60px rgba(255,200,0,.6),0 10px 40px rgba(0,0,0,.5);transition:transform .35s cubic-bezier(.34,1.56,.64,1),opacity .3s;opacity:0;text-shadow:2px 3px 0 rgba(0,0,0,.3);white-space:nowrap}
-  #mensaje-figura.visible{transform:translate(-50%,-50%) scale(1);opacity:1}
-  @keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
-  .confeti{position:fixed;width:12px;height:12px;border-radius:3px;pointer-events:none;z-index:400;animation:caerConfeti 1.5s ease-in forwards}
-  @keyframes caerConfeti{0%{opacity:1;transform:translateY(0) rotate(0deg) scale(1)}100%{opacity:0;transform:translateY(400px) rotate(720deg) scale(0.3)}}
-  @keyframes aparecer{0%{transform:scale(0) rotate(-10deg)}60%{transform:scale(1.25) rotate(5deg)}80%{transform:scale(0.9) rotate(-3deg)}100%{transform:scale(1) rotate(0deg)}}
-  @keyframes brillar{0%,100%{filter:drop-shadow(0 0 12px currentColor)}50%{filter:drop-shadow(0 0 28px currentColor) brightness(1.2)}}
   .colores-panel{position:fixed;left:12px;top:50%;transform:translateY(-50%);z-index:100;display:flex;flex-direction:column;gap:8px;align-items:center;background:rgba(0,0,0,.65);padding:10px 8px;border-radius:20px;border:1px solid rgba(255,255,255,.1)}
   .color-btn{width:38px;height:38px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:transform .15s}
   .color-btn.activo{border-color:white;transform:scale(1.2)}
-  .modo-panel{position:fixed;right:12px;top:50%;transform:translateY(-50%);z-index:100;display:flex;flex-direction:column;gap:8px;align-items:center;background:rgba(0,0,0,.65);padding:10px 8px;border-radius:20px;border:1px solid rgba(255,255,255,.1)}
-  .modo-btn{width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.3rem;transition:all .2s}
-  .modo-btn.activo{border-color:#ffd93d;background:rgba(255,217,61,.25);box-shadow:0 0 12px rgba(255,217,61,.5)}
-  #contador{position:fixed;top:65px;right:12px;background:rgba(0,0,0,.7);color:white;padding:6px 14px;border-radius:20px;font-weight:900;font-size:.85rem;z-index:100;border:1px solid rgba(255,255,255,.15)}
+  .grosor-panel{position:fixed;right:12px;top:50%;transform:translateY(-50%);z-index:100;display:flex;flex-direction:column;gap:10px;align-items:center;background:rgba(0,0,0,.65);padding:10px 8px;border-radius:20px;border:1px solid rgba(255,255,255,.1)}
+  .grosor-btn{border:2px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:all .2s}
+  .grosor-btn.activo{border-color:#ffd93d;background:rgba(255,217,61,.25)}
 </style>
 </head>
 <body>
@@ -52,14 +40,9 @@
   </div>
 </div>
 
-<div id="contador">🎨 Figuras: <span id="num-figuras">0</span></div>
 <video id="video" autoplay playsinline muted></video>
-<canvas id="canvas-trace"></canvas>
 <canvas id="canvas-draw"></canvas>
 <div id="cursor"></div>
-<div id="cursor-pinza">🤌</div>
-<div id="mensaje-figura"></div>
-<div id="contenedor-figuras"></div>
 
 <div class="colores-panel">
   <span style="color:white;font-size:.65rem;font-weight:900">🎨</span>
@@ -73,363 +56,153 @@
   <button class="color-btn" style="background:#ffffff" onclick="setColor('#ffffff',this)"></button>
 </div>
 
-<div class="modo-panel">
-  <span style="color:white;font-size:.6rem;font-weight:900;text-align:center">MODO</span>
-  <button class="modo-btn activo" id="btn-dibujar" onclick="setModo('dibujar',this)" title="Dibujar">✏️</button>
-  <button class="modo-btn" id="btn-mover" onclick="setModo('mover',this)" title="Mover figuras">🤌</button>
-  <button class="modo-btn" id="btn-borrar-figura" onclick="setModo('borrarFigura',this)" title="Borrar figura">🗑️</button>
+<div class="grosor-panel">
+  <span style="color:white;font-size:.6rem;font-weight:900;text-align:center">✏️</span>
+  <button class="grosor-btn activo" style="width:36px;height:36px" onclick="setGrosor(5,this)" title="Fino">
+    <div style="width:4px;height:4px;border-radius:50%;background:white;margin:auto"></div>
+  </button>
+  <button class="grosor-btn" style="width:40px;height:40px" onclick="setGrosor(12,this)" title="Medio">
+    <div style="width:10px;height:10px;border-radius:50%;background:white;margin:auto"></div>
+  </button>
+  <button class="grosor-btn" style="width:44px;height:44px" onclick="setGrosor(24,this)" title="Grueso">
+    <div style="width:18px;height:18px;border-radius:50%;background:white;margin:auto"></div>
+  </button>
+  <button class="grosor-btn" style="width:44px;height:44px" onclick="setGrosor(0,this)" title="Borrador">
+    <span style="font-size:1.1rem">🧹</span>
+  </button>
 </div>
 
 <div class="instruccion" id="instruccion">📷 Activando cámara...</div>
 
 <script>
-const video       = document.getElementById('video');
-const canvasDraw  = document.getElementById('canvas-draw');
-const canvasTrace = document.getElementById('canvas-trace');
-const ctxD        = canvasDraw.getContext('2d');
-const ctxT        = canvasTrace.getContext('2d');
-const cursor      = document.getElementById('cursor');
-const cursorPinza = document.getElementById('cursor-pinza');
-const contenedor  = document.getElementById('contenedor-figuras');
+const video      = document.getElementById('video');
+const canvasDraw = document.getElementById('canvas-draw');
+const ctx        = canvasDraw.getContext('2d');
+const cursor     = document.getElementById('cursor');
 
-let color='#ef4444', modo='dibujar';
-let posHistory=[], dedoFrames=0, noDedoFrames=0;
-const SMOOTH=5, UMBRAL=2;
-let dibujando=false, lastX=null, lastY=null, trazoPuntos=[];
-let figuras=[], figuraAgarrada=null, offsetAgarre={x:0,y:0};
-let pinzaActiva=false, pinzaFrames=0;
-const UMBRAL_PINZA=4;
+let color = '#ef4444';
+let grosor = 5;
+let posHistory = [], dedoFrames = 0, noDedoFrames = 0;
+const SMOOTH = 5, UMBRAL = 2;
+let dibujando = false, lastX = null, lastY = null;
 
-function resizeCanvas(){
-  canvasDraw.width=canvasTrace.width=window.innerWidth;
-  canvasDraw.height=canvasTrace.height=window.innerHeight;
-}
-resizeCanvas();
-window.addEventListener('resize',resizeCanvas);
+canvasDraw.width  = window.innerWidth;
+canvasDraw.height = window.innerHeight;
+window.addEventListener('resize', () => {
+  canvasDraw.width  = window.innerWidth;
+  canvasDraw.height = window.innerHeight;
+});
 
-function setColor(c,btn){color=c;document.querySelectorAll('.color-btn').forEach(b=>b.classList.remove('activo'));btn.classList.add('activo');}
-function setModo(m,btn){modo=m;document.querySelectorAll('.modo-btn').forEach(b=>b.classList.remove('activo'));btn.classList.add('activo');trazoPuntos=[];dibujando=false;lastX=lastY=null;posHistory=[];ctxT.clearRect(0,0,canvasTrace.width,canvasTrace.height);}
-function limpiarTodo(){ctxD.clearRect(0,0,canvasDraw.width,canvasDraw.height);ctxT.clearRect(0,0,canvasTrace.width,canvasTrace.height);contenedor.innerHTML='';figuras=[];trazoPuntos=[];lastX=lastY=null;posHistory=[];document.getElementById('num-figuras').textContent='0';}
-function guardar(){const t=document.createElement('canvas');t.width=canvasDraw.width;t.height=canvasDraw.height;t.getContext('2d').drawImage(canvasDraw,0,0);const a=document.createElement('a');a.download='lienzo-magico.png';a.href=t.toDataURL();a.click();}
-function smoothPos(x,y){posHistory.push({x,y});if(posHistory.length>SMOOTH)posHistory.shift();const s=posHistory.reduce((a,p)=>({x:a.x+p.x,y:a.y+p.y}),{x:0,y:0});return{x:s.x/posHistory.length,y:s.y/posHistory.length};}
-function soloIndice(lm){return lm[8].y<lm[6].y-0.01&&lm[12].y>lm[10].y-0.02&&lm[16].y>lm[14].y-0.02&&lm[20].y>lm[18].y-0.02;}
-function esPinza(lm){const dx=lm[8].x-lm[4].x,dy=lm[8].y-lm[4].y;return Math.sqrt(dx*dx+dy*dy)<0.09;}
-
-// ===================== RECONOCIMIENTO =====================
-const FIGURAS_INFO={
-  circulo:   {emoji:'⭕',nombre:'¡Un Círculo!'},
-  cuadrado:  {emoji:'🟦',nombre:'¡Un Cuadrado!'},
-  triangulo: {emoji:'🔺',nombre:'¡Un Triángulo!'},
-  rectangulo:{emoji:'▬', nombre:'¡Un Rectángulo!'},
-  estrella:  {emoji:'⭐',nombre:'¡Una Estrella!'},
-  corazon:   {emoji:'❤️',nombre:'¡Un Corazón!'},
-  diamante:  {emoji:'🔷',nombre:'¡Un Diamante!'},
-};
-
-function reconocerFigura(pts){
-  if(pts.length<10) return null;
-
-  const xs=pts.map(p=>p.x), ys=pts.map(p=>p.y);
-  const x0=Math.min(...xs), x1=Math.max(...xs);
-  const y0=Math.min(...ys), y1=Math.max(...ys);
-  const W=x1-x0, H=y1-y0;
-  const cx=(x0+x1)/2, cy=(y0+y1)/2;
-  if(W<50||H<50) return null;
-
-  const ratio=W/H;
-
-  const dCierre=Math.hypot(pts[0].x-pts[pts.length-1].x, pts[0].y-pts[pts.length-1].y);
-  const diag=Math.hypot(W,H);
-  const cerrado=dCierre<diag*0.45;
-
-  const dists=pts.map(p=>Math.hypot(p.x-cx,p.y-cy));
-  const dM=dists.reduce((a,b)=>a+b,0)/dists.length;
-  const dStd=Math.sqrt(dists.reduce((a,b)=>a+(b-dM)**2,0)/dists.length);
-  const CV=dStd/dM;
-
-  const esq=contarEsquinas(pts);
-
-  let perim=0;
-  for(let i=1;i<pts.length;i++) perim+=Math.hypot(pts[i].x-pts[i-1].x,pts[i].y-pts[i-1].y);
-  const compact=(W*H)/(perim*perim);
-
-  // ─────────────────────────────────────────────────
-  // 1. CÍRCULO — lógica reforzada anti-corazón
-  //
-  //  CAMBIOS vs versión anterior:
-  //  a) compact > 0.055 (antes 0.04) — el corazón es menos compacto
-  //     por sus dos lóbulos que alargan el perímetro
-  //  b) ratio entre 0.75 y 1.35 — el círculo es casi cuadrado en bbox;
-  //     el corazón suele ser más ancho que alto (ratio > 1.2)
-  //  c) Check anti-corazón: si hay muchos puntos arriba del centro
-  //     bien distribuidos a ambos lados → NO es círculo, es corazón
-  //  d) Se eliminó el fallback permisivo del final (CV < 0.28)
-  //     que era la causa principal de la confusión
-  // ─────────────────────────────────────────────────
-  if(cerrado && CV<0.18 && esq<=3 && compact>0.055 && ratio>0.75 && ratio<1.35){
-    // Anti-corazón: el corazón tiene muchos puntos arriba a ambos lados
-    const sup=pts.filter(p=>p.y < cy - H*0.05);
-    if(sup.length > 6){
-      const lSup=sup.filter(p=>p.x < cx - W*0.12).length;
-      const rSup=sup.filter(p=>p.x > cx + W*0.12).length;
-      const esCorazon = lSup > 4 && rSup > 4;
-      if(esCorazon) return null; // no detectar como círculo, seguir evaluando
-    }
-    return 'circulo';
-  }
-
-  // ─────────────────────────────────────────────────
-  // 2. TRIÁNGULO — sin cambios
-  // ─────────────────────────────────────────────────
-  if(cerrado && esq>=2 && esq<=4 && CV>=0.18 && compact>0.025 && ratio<2.2){
-    const top=pts.reduce((a,b)=>a.y<b.y?a:b);
-    const bot=pts.reduce((a,b)=>a.y>b.y?a:b);
-    const izq=pts.reduce((a,b)=>a.x<b.x?a:b);
-    const der=pts.reduce((a,b)=>a.x>b.x?a:b);
-    if(Math.abs(top.x-cx)<W*0.4||Math.abs(bot.x-cx)<W*0.4||
-       Math.abs(izq.y-cy)<H*0.4||Math.abs(der.y-cy)<H*0.4){
-      return 'triangulo';
-    }
-  }
-
-  // ─────────────────────────────────────────────────
-  // 3. CUADRADO — sin cambios
-  // ─────────────────────────────────────────────────
-  if(cerrado && ratio>=0.65 && ratio<=1.55 && esq>=3 && esq<=8 && CV>=0.18){
-    return 'cuadrado';
-  }
-
-  // ─────────────────────────────────────────────────
-  // 4. RECTÁNGULO — sin cambios
-  // ─────────────────────────────────────────────────
-  if(cerrado && (ratio<0.55||ratio>1.65) && esq>=3 && CV>=0.18){
-    return 'rectangulo';
-  }
-
-  // ─────────────────────────────────────────────────
-  // 5. ESTRELLA — sin cambios
-  // ─────────────────────────────────────────────────
-  if(cerrado && CV>0.33 && esq>=5 && compact<0.035){
-    return 'estrella';
-  }
-
-  // ─────────────────────────────────────────────────
-  // 6. CORAZÓN — sin cambios
-  // ─────────────────────────────────────────────────
-  if(cerrado && ratio>0.55 && ratio<1.8 && CV>=0.18){
-    const sup=pts.filter(p=>p.y<cy);
-    const inf=pts.filter(p=>p.y>cy+H*0.1);
-    if(sup.length>4){
-      const lSup=sup.filter(p=>p.x<cx-W*0.1).length;
-      const rSup=sup.filter(p=>p.x>cx+W*0.1).length;
-      const cInf=inf.filter(p=>Math.abs(p.x-cx)<W*0.3).length;
-      if(lSup>3&&rSup>3&&cInf>2) return 'corazon';
-    }
-  }
-
-  // ─────────────────────────────────────────────────
-  // 7. DIAMANTE — sin cambios
-  // ─────────────────────────────────────────────────
-  if(cerrado && CV>=0.18){
-    const top=pts.reduce((a,b)=>a.y<b.y?a:b);
-    const bot=pts.reduce((a,b)=>a.y>b.y?a:b);
-    const izq=pts.reduce((a,b)=>a.x<b.x?a:b);
-    const der=pts.reduce((a,b)=>a.x>b.x?a:b);
-    if(Math.abs(top.x-cx)<W*0.28&&Math.abs(bot.x-cx)<W*0.28&&
-       Math.abs(izq.y-cy)<H*0.28&&Math.abs(der.y-cy)<H*0.28){
-      return 'diamante';
-    }
-  }
-
-  // NOTA: Se eliminó el fallback "circulo imperfecto" (CV<0.28)
-  // que era la causa de que el corazón se confundiera con círculo.
-
-  return null;
+function setColor(c, btn){
+  color = c;
+  if(grosor === 0) grosor = 5;
+  document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('activo'));
+  btn.classList.add('activo');
 }
 
-function contarEsquinas(pts){
-  const step=Math.max(1,Math.floor(pts.length/40));
-  const sub=[];
-  for(let i=0;i<pts.length;i+=step) sub.push(pts[i]);
-  if(sub.length<6) return 0;
-
-  const win=Math.max(3,Math.floor(sub.length/10));
-  const angs=[];
-  for(let i=win;i<sub.length-win;i++){
-    const dx1=sub[i].x-sub[i-win].x, dy1=sub[i].y-sub[i-win].y;
-    const dx2=sub[i+win].x-sub[i].x, dy2=sub[i+win].y-sub[i].y;
-    const l1=Math.hypot(dx1,dy1)||1, l2=Math.hypot(dx2,dy2)||1;
-    angs.push(Math.acos(Math.max(-1,Math.min(1,(dx1*dx2+dy1*dy2)/(l1*l2)))));
-  }
-
-  const silencio=Math.max(2,Math.floor(angs.length/12));
-  let picos=0, ultimo=-silencio*2;
-  for(let i=0;i<angs.length;i++){
-    if(angs[i]>0.75 && i-ultimo>silencio){picos++;ultimo=i;}
-  }
-  return picos;
+function setGrosor(g, btn){
+  grosor = g;
+  document.querySelectorAll('.grosor-btn').forEach(b => b.classList.remove('activo'));
+  btn.classList.add('activo');
 }
 
-// ===================== SVG =====================
-const CVIVOS=['#ff4757','#ff6b81','#ffa502','#eccc68','#2ed573','#1e90ff','#a29bfe','#fd79a8','#fdcb6e','#00cec9'];
-function crearFiguraSVG(tipo,cx,cy,w,h,col){
-  const c=col||CVIVOS[Math.floor(Math.random()*CVIVOS.length)];
-  const sz=Math.min(Math.max(Math.max(w,h),80),220), s2=sz/2;
-  const gid='g'+Date.now();
-  const grad=`<defs><radialGradient id="${gid}" cx="40%" cy="35%" r="65%"><stop offset="0%" stop-color="white" stop-opacity="0.5"/><stop offset="100%" stop-color="${c}" stop-opacity="0.9"/></radialGradient><filter id="gl${gid}"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
-  const fs=`fill="url(#${gid})" stroke="${c}" stroke-width="4" filter="url(#gl${gid})"`;
-  let inner='';
-  switch(tipo){
-    case 'circulo':  inner=`<circle cx="${s2}" cy="${s2}" r="${s2-6}" ${fs}/>`; break;
-    case 'cuadrado': inner=`<rect x="8" y="8" width="${sz-16}" height="${sz-16}" rx="12" ${fs}/>`; break;
-    case 'triangulo':inner=`<polygon points="${s2},8 ${sz-8},${sz-8} 8,${sz-8}" ${fs}/>`; break;
-    case 'rectangulo':{const rw=sz*1.6,rh=sz*0.7;return mkElem(tipo,cx,cy,rw,rh,c,`<svg width="${rw}" height="${rh}" xmlns="http://www.w3.org/2000/svg">${grad}<rect x="8" y="8" width="${rw-16}" height="${rh-16}" rx="12" ${fs}/></svg>`);}
-    case 'estrella': inner=`<polygon points="${star(s2,s2,s2-6,s2*0.45,5)}" ${fs}/>`; break;
-    case 'corazon':  inner=`<path d="M${s2},${sz*0.8} C${sz*0.1},${sz*0.55} 0,${sz*0.3} ${s2},${sz*0.15} C${sz},${sz*0.3} ${sz*0.9},${sz*0.55} ${s2},${sz*0.8}Z" ${fs}/>`; break;
-    case 'diamante': inner=`<polygon points="${s2},8 ${sz-8},${s2} ${s2},${sz-8} 8,${s2}" ${fs}/>`; break;
-    default:         inner=`<circle cx="${s2}" cy="${s2}" r="${s2-6}" ${fs}/>`;
-  }
-  return mkElem(tipo,cx,cy,sz,sz,c,`<svg width="${sz}" height="${sz}" xmlns="http://www.w3.org/2000/svg">${grad}${inner}</svg>`);
-}
-function star(cx,cy,R,r,n){return Array.from({length:n*2},(_,i)=>{const a=(i*Math.PI/n)-Math.PI/2,rd=i%2?r:R;return`${cx+rd*Math.cos(a)},${cy+rd*Math.sin(a)}`}).join(' ');}
-function mkElem(tipo,cx,cy,w,h,c,svg){
-  const d=document.createElement('div');
-  d.className='figura-flotante';
-  d.style.cssText=`color:${c};width:${w}px;height:${h}px;left:${cx-w/2}px;top:${cy-h/2}px;animation:aparecer 0.6s cubic-bezier(.34,1.56,.64,1) forwards,brillar 2s ease-in-out infinite 0.7s`;
-  d.innerHTML=svg;
-  const obj={el:d,x:cx,y:cy,w,h,color:c,tipo,phase:Math.random()*Math.PI*2};
-  figuras.push(obj);contenedor.appendChild(d);
-  document.getElementById('num-figuras').textContent=figuras.length;
-  return obj;
+function limpiarTodo(){
+  ctx.clearRect(0, 0, canvasDraw.width, canvasDraw.height);
 }
 
-function lanzarConfeti(cx,cy){
-  const cols=['#ff4757','#ffa502','#2ed573','#1e90ff','#a29bfe','#fd79a8','#ffd32a','#fff'];
-  for(let i=0;i<40;i++){
-    const e=document.createElement('div');e.className='confeti';
-    e.style.cssText=`background:${cols[i%cols.length]};left:${cx+(Math.random()-.5)*200}px;top:${cy+(Math.random()-.5)*100}px;animation-delay:${Math.random()*.4}s;animation-duration:${1+Math.random()*.8}s;border-radius:${Math.random()>.5?'50%':'3px'}`;
-    document.body.appendChild(e);setTimeout(()=>e.remove(),2500);
-  }
+function guardar(){
+  const a = document.createElement('a');
+  a.download = 'lienzo-magico.png';
+  a.href = canvasDraw.toDataURL();
+  a.click();
 }
 
-let msgTimer=null;
-function mostrarMensaje(tipo){
-  const info=FIGURAS_INFO[tipo];if(!info)return;
-  const el=document.getElementById('mensaje-figura');
-  el.textContent=info.emoji+' '+info.nombre+' '+info.emoji;
-  el.classList.add('visible');
-  if(msgTimer)clearTimeout(msgTimer);
-  msgTimer=setTimeout(()=>el.classList.remove('visible'),2200);
+function smoothPos(x, y){
+  posHistory.push({x, y});
+  if(posHistory.length > SMOOTH) posHistory.shift();
+  const s = posHistory.reduce((a,p) => ({x: a.x+p.x, y: a.y+p.y}), {x:0, y:0});
+  return {x: s.x/posHistory.length, y: s.y/posHistory.length};
 }
 
-let t=0;
-(function loop(){t+=0.02;figuras.forEach(f=>{if(!f.agarrada)f.el.style.top=(f.y-f.h/2+Math.sin(t+f.phase)*5)+'px';});requestAnimationFrame(loop);})();
+function soloIndice(lm){
+  return lm[8].y < lm[6].y - 0.01 &&
+         lm[12].y > lm[10].y - 0.02 &&
+         lm[16].y > lm[14].y - 0.02 &&
+         lm[20].y > lm[18].y - 0.02;
+}
 
-// ===================== MEDIAPIPE =====================
-const hands=new Hands({locateFile:fn=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${fn}`});
-hands.setOptions({maxNumHands:1,modelComplexity:1,minDetectionConfidence:0.4,minTrackingConfidence:0.6});
+const hands = new Hands({locateFile: fn => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${fn}`});
+hands.setOptions({maxNumHands:1, modelComplexity:1, minDetectionConfidence:0.4, minTrackingConfidence:0.6});
 
-hands.onResults(res=>{
-  if(res.multiHandLandmarks&&res.multiHandLandmarks.length>0){
-    const lm=res.multiHandLandmarks[0];
-    const {x,y}=smoothPos((1-lm[8].x)*canvasDraw.width, Math.min(lm[8].y*canvasDraw.height*1.1,canvasDraw.height-10));
-    const pinzaAhora=esPinza(lm);
+hands.onResults(res => {
+  if(res.multiHandLandmarks && res.multiHandLandmarks.length > 0){
+    const lm = res.multiHandLandmarks[0];
+    const {x, y} = smoothPos(
+      (1 - lm[8].x) * canvasDraw.width,
+      Math.min(lm[8].y * canvasDraw.height * 1.1, canvasDraw.height - 10)
+    );
 
-    if(modo==='dibujar'){
-      cursor.style.cssText=`display:block;left:${x}px;top:${y}px;width:18px;height:18px;background:${dibujando?color:'transparent'};border:3px solid ${dibujando?'white':'rgba(255,255,255,0.4)'};border-radius:50%;pointer-events:none;z-index:200;transform:translate(-50%,-50%);transition:width .1s,height .1s`;
-      cursorPinza.style.display='none';
+    const esBorrador = grosor === 0;
+    const tamCursor  = esBorrador ? 44 : Math.max(grosor * 2, 16);
+    cursor.style.cssText = `
+      display:block;left:${x}px;top:${y}px;
+      width:${tamCursor}px;height:${tamCursor}px;
+      background:${dibujando && !esBorrador ? color : 'transparent'};
+      border:3px solid ${dibujando ? 'white' : 'rgba(255,255,255,0.4)'};
+      border-radius:50%;pointer-events:none;z-index:200;
+      transform:translate(-50%,-50%)
+    `;
 
-      if(soloIndice(lm)){dedoFrames++;noDedoFrames=0;if(dedoFrames>=UMBRAL)dibujando=true;}
-      else{
-        noDedoFrames++;dedoFrames=0;
-        if(noDedoFrames>=UMBRAL){
-          if(dibujando&&trazoPuntos.length>8){
-            const bx=trazoPuntos.map(p=>p.x),by=trazoPuntos.map(p=>p.y);
-            const tipo=reconocerFigura(trazoPuntos);
-            ctxT.clearRect(0,0,canvasTrace.width,canvasTrace.height);
-            ctxD.clearRect(0,0,canvasDraw.width,canvasDraw.height);
-            if(tipo){
-              const cx2=(Math.min(...bx)+Math.max(...bx))/2, cy2=(Math.min(...by)+Math.max(...by))/2;
-              crearFiguraSVG(tipo,cx2,cy2,Math.max(...bx)-Math.min(...bx),Math.max(...by)-Math.min(...by),color);
-              lanzarConfeti(cx2,cy2);mostrarMensaje(tipo);
-            }
-          }
-          dibujando=false;lastX=lastY=null;posHistory=[];trazoPuntos=[];
-        }
-      }
-
-      document.getElementById('instruccion').textContent=dibujando?'✏️ ¡Dibujando! Levanta el dedo al terminar':'☝️ Levanta solo el índice para dibujar';
-      if(dibujando){
-        trazoPuntos.push({x,y});
-        if(lastX!==null){
-          ctxT.beginPath();ctxT.moveTo(lastX,lastY);ctxT.lineTo(x,y);
-          ctxT.lineWidth=5;ctxT.lineCap='round';ctxT.lineJoin='round';
-          ctxT.strokeStyle=color;ctxT.globalAlpha=0.85;ctxT.stroke();ctxT.globalAlpha=1;
-        }
-        lastX=x;lastY=y;
+    if(soloIndice(lm)){
+      dedoFrames++; noDedoFrames = 0;
+      if(dedoFrames >= UMBRAL) dibujando = true;
+    } else {
+      noDedoFrames++; dedoFrames = 0;
+      if(noDedoFrames >= UMBRAL){
+        dibujando = false;
+        lastX = lastY = null;
       }
     }
 
-    else if(modo==='mover'){
-      cursor.style.display='none';
-      cursorPinza.style.left=x+'px';cursorPinza.style.top=y+'px';cursorPinza.style.display='block';
-      if(pinzaAhora){
-        pinzaFrames++;
-        if(pinzaFrames>=UMBRAL_PINZA&&!pinzaActiva){
-          pinzaActiva=true;figuraAgarrada=null;
-          for(let i=figuras.length-1;i>=0;i--){
-            const f=figuras[i];
-            if(x>=f.x-f.w/2&&x<=f.x+f.w/2&&y>=f.y-f.h/2&&y<=f.y+f.h/2){
-              figuraAgarrada=f;f.agarrada=true;f.el.classList.add('agarrada');
-              offsetAgarre={x:x-f.x,y:y-f.y};break;
-            }
-          }
-        }
-        if(pinzaActiva&&figuraAgarrada){
-          figuraAgarrada.x=x-offsetAgarre.x;figuraAgarrada.y=y-offsetAgarre.y;
-          figuraAgarrada.el.style.left=(figuraAgarrada.x-figuraAgarrada.w/2)+'px';
-          figuraAgarrada.el.style.top=(figuraAgarrada.y-figuraAgarrada.h/2)+'px';
-        }
-      }else{
-        pinzaFrames=0;
-        if(figuraAgarrada){figuraAgarrada.agarrada=false;figuraAgarrada.el.classList.remove('agarrada');figuraAgarrada.phase=Math.random()*Math.PI*2;}
-        figuraAgarrada=null;pinzaActiva=false;
+    document.getElementById('instruccion').textContent =
+      dibujando ? (esBorrador ? '🧹 Borrando...' : '✏️ Dibujando...') : '☝️ Levanta el índice para dibujar';
+
+    if(dibujando && lastX !== null){
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(x, y);
+      if(esBorrador){
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.lineWidth = 44;
+      } else {
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = color;
+        ctx.lineWidth = grosor;
       }
-      document.getElementById('instruccion').textContent=pinzaActiva&&figuraAgarrada?'🤌 ¡Moviendo figura!':'🤌 Junta índice y pulgar sobre una figura';
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.globalAlpha = 1;
+      ctx.stroke();
+      ctx.globalCompositeOperation = 'source-over';
     }
 
-    else if(modo==='borrarFigura'){
-      cursorPinza.style.display='none';
-      cursor.style.cssText=`display:block;left:${x}px;top:${y}px;width:40px;height:40px;background:rgba(239,68,68,0.45);border:3px solid #ef4444;border-radius:50%;pointer-events:none;z-index:200;transform:translate(-50%,-50%);transition:width .1s,height .1s`;
-      if(soloIndice(lm)){
-        dedoFrames++;noDedoFrames=0;
-        if(dedoFrames===UMBRAL){
-          for(let i=figuras.length-1;i>=0;i--){
-            const f=figuras[i],r=f.el.getBoundingClientRect();
-            if(Math.hypot(x-(r.left+r.width/2),y-(r.top+r.height/2))<Math.max(f.w,f.h)*0.6){
-              f.el.style.transition='transform .35s ease,opacity .35s ease';
-              f.el.style.transform='scale(0) rotate(30deg)';f.el.style.opacity='0';
-              setTimeout(()=>{if(f.el.parentNode)f.el.remove();},380);
-              figuras.splice(i,1);document.getElementById('num-figuras').textContent=figuras.length;break;
-            }
-          }
-        }
-      }else{noDedoFrames++;dedoFrames=0;}
-      document.getElementById('instruccion').textContent='☝️ Apunta a una figura para borrarla';
-    }
+    if(dibujando){ lastX = x; lastY = y; }
 
-  }else{
-    cursor.style.display='none';cursorPinza.style.display='none';
-    dedoFrames=noDedoFrames=pinzaFrames=0;pinzaActiva=false;
-    if(figuraAgarrada){figuraAgarrada.agarrada=false;figuraAgarrada.el.classList.remove('agarrada');figuraAgarrada=null;}
-    dibujando=false;lastX=lastY=null;posHistory=[];trazoPuntos=[];
-    ctxT.clearRect(0,0,canvasTrace.width,canvasTrace.height);
-    document.getElementById('instruccion').textContent='✋ Muestra tu mano frente a la cámara';
+  } else {
+    cursor.style.display = 'none';
+    dedoFrames = noDedoFrames = 0;
+    dibujando = false; lastX = lastY = null; posHistory = [];
+    document.getElementById('instruccion').textContent = '✋ Muestra tu mano frente a la cámara';
   }
 });
 
-const camera=new Camera(video,{onFrame:async()=>{await hands.send({image:video});},width:1280,height:720});
-camera.start().then(()=>{document.getElementById('instruccion').textContent='✋ Muestra tu mano frente a la cámara';});
+const camera = new Camera(video, {
+  onFrame: async () => { await hands.send({image: video}); },
+  width: 1280, height: 720
+});
+camera.start().then(() => {
+  document.getElementById('instruccion').textContent = '✋ Muestra tu mano frente a la cámara';
+});
 </script>
 </body>
 </html>
