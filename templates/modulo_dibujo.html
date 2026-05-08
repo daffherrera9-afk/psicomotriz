@@ -279,7 +279,7 @@ const FIGURAS_INFO = {
 };
 
 function reconocerFigura(puntos){
-  if(puntos.length < 8) return null;
+  if(puntos.length < 10) return null;
 
   // Bounding box
   const xs = puntos.map(p=>p.x), ys = puntos.map(p=>p.y);
@@ -287,80 +287,107 @@ function reconocerFigura(puntos){
   const minY=Math.min(...ys), maxY=Math.max(...ys);
   const W = maxX-minX, H = maxY-minY;
   const cx = (minX+maxX)/2, cy = (minY+maxY)/2;
-  if(W<30 || H<30) return null;
+  if(W < 40 || H < 40) return null;
 
-  // Normalizar puntos al centro
-  const norm = puntos.map(p=>({x:(p.x-cx)/Math.max(W,H)*2, y:(p.y-cy)/Math.max(W,H)*2}));
+  const ratio = W / H; // ancho/alto
 
-  // Ratio ancho/alto
-  const ratio = W/H;
+  // Cierre del trazo (inicio cerca del fin)
+  const p0 = puntos[0], pN = puntos[puntos.length-1];
+  const distCierre = Math.sqrt((p0.x-pN.x)**2 + (p0.y-pN.y)**2);
+  const diagonal   = Math.sqrt(W*W + H*H);
+  const cerrado    = distCierre < diagonal * 0.4;
 
-  // Compacidad (área / perímetro²) — círculo ≈ 0.0796
-  let perimeter = 0;
+  // Perímetro real del trazo
+  let perimetro = 0;
   for(let i=1;i<puntos.length;i++){
     const dx=puntos[i].x-puntos[i-1].x, dy=puntos[i].y-puntos[i-1].y;
-    perimeter += Math.sqrt(dx*dx+dy*dy);
+    perimetro += Math.sqrt(dx*dx+dy*dy);
   }
-  const area = W*H;
-  const compacidad = area / (perimeter*perimeter);
 
-  // Cierre del trazo
-  const p0=puntos[0], pN=puntos[puntos.length-1];
-  const distCierre = Math.sqrt((p0.x-pN.x)**2+(p0.y-pN.y)**2);
-  const cerrado = distCierre < Math.max(W,H)*0.45;
+  // Circularidad: qué tan parecido es a un círculo perfecto
+  // Círculo perfecto = perimetro / (2*pi*radio) ≈ 1
+  const radio = (W+H)/4;
+  const circularidad = perimetro / (2*Math.PI*radio);
+  // cercano a 1 = círculo, > 1.4 = figura más compleja
 
-  // Esquinas (cambios bruscos de dirección)
+  // Esquinas con umbral generoso
   const esquinas = contarEsquinas(puntos);
 
-  // ---- Heurísticas ----
-
-  // Círculo: muy compacto, ratio ~1, cerrado
-  if(cerrado && compacidad > 0.055 && ratio > 0.6 && ratio < 1.7 && esquinas < 4){
+  // ─── CÍRCULO ───
+  // Trazo que da vueltas, circularidad ~1, cerrado, ratio ~1
+  if(cerrado && circularidad < 1.5 && ratio > 0.5 && ratio < 2.0 && esquinas <= 3){
     return 'circulo';
   }
 
-  // Triángulo: cerrado, 3 esquinas
-  if(cerrado && esquinas >= 2 && esquinas <= 4 && (ratio < 0.55 || ratio > 1.8 || compacidad < 0.04)){
-    if(esquinas <= 4) return 'triangulo';
+  // ─── TRIÁNGULO ───
+  // Cerrado, 3 lados = 2-3 esquinas marcadas, cualquier ratio
+  if(cerrado && esquinas >= 2 && esquinas <= 4 && circularidad > 1.3){
+    // Diferenciar del cuadrado: triángulo suele ser más alto o más ancho
+    if(ratio < 0.75 || ratio > 1.35 || esquinas <= 3) return 'triangulo';
   }
 
-  // Cuadrado: cerrado, ratio ~1, 4 esquinas
-  if(cerrado && esquinas >= 3 && esquinas <= 6 && ratio > 0.65 && ratio < 1.55){
+  // ─── CUADRADO ───
+  // Cerrado, 4 esquinas, ratio ~1
+  if(cerrado && esquinas >= 3 && esquinas <= 6 && ratio > 0.6 && ratio < 1.6 && circularidad > 1.2){
     return 'cuadrado';
   }
 
-  // Rectángulo: cerrado, ratio lejano de 1
-  if(cerrado && esquinas >= 3 && (ratio < 0.5 || ratio > 2.0)){
+  // ─── RECTÁNGULO ───
+  // Cerrado, ratio muy diferente de 1
+  if(cerrado && esquinas >= 3 && (ratio < 0.55 || ratio > 1.8)){
     return 'rectangulo';
   }
 
-  // Estrella: muchas esquinas, cerrado
-  if(cerrado && esquinas >= 7){
+  // ─── DIAMANTE / ROMBO ───
+  // Cerrado, 4 esquinas, puntos extremos en los 4 lados
+  if(cerrado && esquinas >= 3 && esquinas <= 5 && ratio > 0.5 && ratio < 1.8){
+    // Verificar que el punto más alto y más bajo estén centrados
+    const topP  = puntos.reduce((a,b)=>a.y<b.y?a:b);
+    const botP  = puntos.reduce((a,b)=>a.y>b.y?a:b);
+    const izqP  = puntos.reduce((a,b)=>a.x<b.x?a:b);
+    const derP  = puntos.reduce((a,b)=>a.x>b.x?a:b);
+    const centradoV = Math.abs(topP.x - cx) < W*0.4 && Math.abs(botP.x - cx) < W*0.4;
+    const centradoH = Math.abs(izqP.y - cy) < H*0.4 && Math.abs(derP.y - cy) < H*0.4;
+    if(centradoV && centradoH) return 'diamante';
+  }
+
+  // ─── ESTRELLA ───
+  // Muchos cambios de dirección, cerrado
+  if(cerrado && esquinas >= 6){
     return 'estrella';
   }
 
-  // Diamante: cerrado, ratio ~1, pocos esquinas, forma de rombo
-  if(cerrado && esquinas >= 3 && esquinas <= 5 && ratio > 0.5 && ratio < 2.0 && compacidad < 0.05){
-    return 'diamante';
+  // ─── CORAZÓN ───
+  // Cerrado, ancho > alto, parte superior con dos lóbulos
+  if(cerrado && ratio > 0.7 && ratio < 2.2){
+    const mitadSup = puntos.filter(p=>p.y < cy);
+    if(mitadSup.length > 4){
+      const xsSup = mitadSup.map(p=>p.x);
+      const spreadSup = Math.max(...xsSup) - Math.min(...xsSup);
+      // Verifica que la mitad superior tenga puntos a la izquierda y derecha del centro
+      const izqSup = mitadSup.filter(p=>p.x < cx-W*0.1).length;
+      const derSup = mitadSup.filter(p=>p.x > cx+W*0.1).length;
+      if(izqSup > 2 && derSup > 2 && spreadSup > W*0.5) return 'corazon';
+    }
   }
 
-  // Corazón: cerrado, ancho > alto, forma especial
-  if(cerrado && ratio > 0.8 && ratio < 2.0 && tieneFormaCorazon(norm)){
-    return 'corazon';
+  // ─── LUNA ───
+  // Cerrado, forma cóncava (C)
+  if(cerrado && (ratio < 0.6 || ratio > 1.7)){
+    const puntosIzq = puntos.filter(p=>p.x < cx);
+    const puntosDer = puntos.filter(p=>p.x > cx);
+    if(puntosIzq.length < puntos.length*0.2 || puntosDer.length < puntos.length*0.2)
+      return 'luna';
   }
 
-  // Luna: cerrado, cóncavo
-  if(cerrado && esConcavo(puntos,cx,cy) && ratio > 0.4 && ratio < 2.5){
-    return 'luna';
-  }
-
-  // Hexágono: cerrado, 5-8 esquinas
-  if(cerrado && esquinas >= 5 && esquinas <= 8){
+  // ─── HEXÁGONO ───
+  if(cerrado && esquinas >= 5 && esquinas <= 8 && ratio > 0.6 && ratio < 1.5){
     return 'hexagono';
   }
 
-  // Flecha: no cerrado, dirección clara
-  if(!cerrado && ratio > 1.5){
+  // ─── FLECHA ───
+  // No cerrado, alargado
+  if(!cerrado && (ratio > 1.8 || ratio < 0.4) && esquinas >= 2){
     return 'flecha';
   }
 
@@ -368,39 +395,24 @@ function reconocerFigura(puntos){
 }
 
 function contarEsquinas(puntos){
-  const step = Math.max(1, Math.floor(puntos.length/20));
+  // Submuestrear a máximo 40 puntos para estabilidad
+  const step = Math.max(1, Math.floor(puntos.length/40));
+  const sub = [];
+  for(let i=0;i<puntos.length;i+=step) sub.push(puntos[i]);
+
+  const w = Math.max(3, Math.floor(sub.length/10));
   let esquinas = 0;
-  for(let i=step; i<puntos.length-step; i+=step){
-    const dx1 = puntos[i].x - puntos[i-step].x;
-    const dy1 = puntos[i].y - puntos[i-step].y;
-    const dx2 = puntos[i+step].x - puntos[i].x;
-    const dy2 = puntos[i+step].y - puntos[i].y;
+  for(let i=w; i<sub.length-w; i++){
+    const dx1 = sub[i].x - sub[i-w].x, dy1 = sub[i].y - sub[i-w].y;
+    const dx2 = sub[i+w].x - sub[i].x, dy2 = sub[i+w].y - sub[i].y;
     const len1 = Math.sqrt(dx1*dx1+dy1*dy1)||1;
     const len2 = Math.sqrt(dx2*dx2+dy2*dy2)||1;
     const dot  = (dx1*dx2+dy1*dy2)/(len1*len2);
     const ang  = Math.acos(Math.max(-1,Math.min(1,dot)));
-    if(ang > 0.7) esquinas++;
+    if(ang > 0.65) esquinas++;
   }
-  return esquinas;
-}
-
-function tieneFormaCorazon(norm){
-  // Punto más alto debe estar partido (dos lóbulos)
-  const topPoints = norm.filter(p=>p.y < -0.2);
-  if(topPoints.length < 3) return false;
-  const xsTop = topPoints.map(p=>p.x);
-  const spread = Math.max(...xsTop) - Math.min(...xsTop);
-  return spread > 0.5;
-}
-
-function esConcavo(puntos, cx, cy){
-  let dentroCount = 0;
-  puntos.forEach(p=>{
-    const dx=p.x-cx, dy=p.y-cy;
-    if(Math.sqrt(dx*dx+dy*dy) < Math.max(...puntos.map(q=>Math.sqrt((q.x-cx)**2+(q.y-cy)**2)))*0.5)
-      dentroCount++;
-  });
-  return dentroCount > puntos.length * 0.15;
+  // Agrupar esquinas cercanas
+  return Math.round(esquinas / Math.max(1, w*0.8));
 }
 
 // ===================== CREAR FIGURA SVG =====================
@@ -704,22 +716,26 @@ hands.onResults(res => {
       cursorPinza.style.display = 'none';
       cursor.style.left = x+'px';
       cursor.style.top  = y+'px';
-      cursor.style.width  = '30px';
-      cursor.style.height = '30px';
-      cursor.style.background = 'rgba(239,68,68,0.5)';
+      cursor.style.width  = '40px';
+      cursor.style.height = '40px';
+      cursor.style.background = 'rgba(239,68,68,0.45)';
       cursor.style.border = '3px solid #ef4444';
 
       if(soloIndice(lm)){
         dedoFrames++; noDedoFrames=0;
-        if(dedoFrames>=UMBRAL){
-          // Buscar figura bajo cursor
+        // Solo actuar en el frame exacto que supera el umbral
+        if(dedoFrames === UMBRAL){
           for(let i=figuras.length-1;i>=0;i--){
             const f=figuras[i];
-            if(x>=f.x-f.w/2 && x<=f.x+f.w/2 && y>=f.y-f.h/2 && y<=f.y+f.h/2){
-              f.el.style.transition='transform .3s, opacity .3s';
+            const elRect = f.el.getBoundingClientRect();
+            const ex = elRect.left + elRect.width/2;
+            const ey = elRect.top  + elRect.height/2;
+            const dist = Math.sqrt((x-ex)**2+(y-ey)**2);
+            if(dist < Math.max(f.w,f.h)*0.6){
+              f.el.style.transition='transform .35s ease, opacity .35s ease';
               f.el.style.transform='scale(0) rotate(30deg)';
               f.el.style.opacity='0';
-              setTimeout(()=>f.el.remove(),300);
+              setTimeout(()=>{ if(f.el.parentNode) f.el.remove(); },380);
               figuras.splice(i,1);
               document.getElementById('num-figuras').textContent=figuras.length;
               break;
@@ -727,7 +743,7 @@ hands.onResults(res => {
           }
         }
       } else {
-        dedoFrames=0;
+        noDedoFrames++; dedoFrames=0;
       }
 
       document.getElementById('instruccion').textContent = '☝️ Apunta a una figura para borrarla';
