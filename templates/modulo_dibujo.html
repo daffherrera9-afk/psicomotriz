@@ -558,6 +558,47 @@ function animarFiguras(){
 }
 animarFiguras();
 
+// ===================== RECONOCIMIENTO CON IA =====================
+async function reconocerConIA(imgBase64, puntos, cx, cy, w, h){
+  document.getElementById('instruccion').textContent = '🤖 Analizando figura...';
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 50,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: { type: 'base64', media_type: 'image/png', data: imgBase64 }
+            },
+            {
+              type: 'text',
+              text: 'Mira este dibujo hecho a mano. Responde SOLO con una de estas palabras exactas (en minúsculas, sin puntuación): circulo, cuadrado, triangulo, rectangulo, estrella, corazon, diamante, luna, hexagono, flecha. Si no reconoces ninguna forma clara, responde: ninguna'
+            }
+          ]
+        }]
+      })
+    });
+    const data = await resp.json();
+    const tipo = data.content?.[0]?.text?.trim().toLowerCase().replace(/[^a-záéíóúñ]/g,'') || 'ninguna';
+    const VALIDAS = ['circulo','cuadrado','triangulo','rectangulo','estrella','corazon','diamante','luna','hexagono','flecha'];
+    if(VALIDAS.includes(tipo)){
+      crearFiguraSVG(tipo, cx, cy, w, h, color);
+      lanzarConfeti(cx, cy);
+      mostrarMensaje(tipo);
+    } else {
+      document.getElementById('instruccion').textContent = '☝️ Levanta solo el índice para dibujar';
+    }
+  } catch(e){
+    console.error('IA error:', e);
+    document.getElementById('instruccion').textContent = '☝️ Levanta solo el índice para dibujar';
+  }
+}
+
 // ===================== MEDIAPIPE =====================
 const hands = new Hands({
   locateFile: fn => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${fn}`
@@ -594,27 +635,17 @@ hands.onResults(res => {
         noDedoFrames++; dedoFrames=0;
         if(noDedoFrames>=UMBRAL){
           if(dibujando && trazoPuntos.length > 6){
-            // Intentar reconocer
-            const tipo = reconocerFigura(trazoPuntos);
             const bx = trazoPuntos.map(p=>p.x), by = trazoPuntos.map(p=>p.y);
             const cx2 = (Math.min(...bx)+Math.max(...bx))/2;
             const cy2 = (Math.min(...by)+Math.max(...by))/2;
             const w2  = Math.max(...bx)-Math.min(...bx);
             const h2  = Math.max(...by)-Math.min(...by);
-
-            if(tipo){
-              // Borrar trazo del canvas
-              ctxT.clearRect(0,0,canvasTrace.width,canvasTrace.height);
-              ctxD.clearRect(0,0,canvasDraw.width,canvasDraw.height);
-              // Crear figura
-              crearFiguraSVG(tipo, cx2, cy2, w2, h2, color);
-              lanzarConfeti(cx2,cy2);
-              mostrarMensaje(tipo);
-            } else {
-              // No reconocida — dejar el trazo en canvas permanente
-              ctxD.drawImage(canvasTrace,0,0);
-              ctxT.clearRect(0,0,canvasTrace.width,canvasTrace.height);
-            }
+            // Capturar imagen del trazo y enviar a Claude IA
+            const imgData = canvasTrace.toDataURL('image/png').split(',')[1];
+            const puntosSnap = [...trazoPuntos];
+            ctxT.clearRect(0,0,canvasTrace.width,canvasTrace.height);
+            ctxD.clearRect(0,0,canvasDraw.width,canvasDraw.height);
+            reconocerConIA(imgData, puntosSnap, cx2, cy2, w2, h2);
           }
           dibujando=false; lastX=null; lastY=null;
           posHistory=[]; trazoPuntos=[];
