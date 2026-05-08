@@ -23,99 +23,44 @@
   #canvas-draw{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none}
   #canvas-trace{position:fixed;top:0;left:0;width:100%;height:100%;z-index:2;pointer-events:none}
 
-  /* Figuras flotantes */
-  .figura-flotante{
-    position:fixed;
-    z-index:50;
-    pointer-events:none;
-    transform-origin:center center;
-    filter:drop-shadow(0 0 18px currentColor);
-    transition: filter 0.2s;
-  }
-  .figura-flotante.agarrada{
-    filter:drop-shadow(0 0 35px currentColor) brightness(1.4);
-  }
+  .figura-flotante{position:fixed;z-index:50;pointer-events:none;transform-origin:center center;filter:drop-shadow(0 0 18px currentColor);transition:filter 0.2s}
+  .figura-flotante.agarrada{filter:drop-shadow(0 0 35px currentColor) brightness(1.4)}
 
-  /* Cursor */
   #cursor{position:fixed;border-radius:50%;pointer-events:none;z-index:200;transform:translate(-50%,-50%);display:none;transition:width .1s,height .1s}
   #cursor-pinza{position:fixed;pointer-events:none;z-index:200;transform:translate(-50%,-50%);display:none;font-size:2rem;line-height:1}
 
-  /* Instruccion */
   .instruccion{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.85);color:white;padding:12px 28px;border-radius:50px;font-weight:700;font-size:.95rem;z-index:100;white-space:nowrap;border:2px solid rgba(255,255,255,.15)}
 
-  /* Mensaje figura reconocida */
   #mensaje-figura{
-    position:fixed;
-    top:50%;left:50%;
+    position:fixed;top:50%;left:50%;
     transform:translate(-50%,-50%) scale(0);
     background:linear-gradient(135deg,#ff6b6b,#ffd93d,#6bcb77,#4d96ff);
     background-size:300% 300%;
     animation:gradientShift 2s ease infinite;
-    color:white;
-    font-family:'Fredoka One',cursive;
-    font-size:2.8rem;
-    padding:20px 45px;
-    border-radius:30px;
-    z-index:500;
-    text-align:center;
+    color:white;font-family:'Fredoka One',cursive;font-size:2.8rem;
+    padding:20px 45px;border-radius:30px;z-index:500;text-align:center;
     pointer-events:none;
-    box-shadow:0 0 60px rgba(255,200,0,.6), 0 10px 40px rgba(0,0,0,.5);
-    transition:transform .35s cubic-bezier(.34,1.56,.64,1), opacity .3s;
-    opacity:0;
-    text-shadow:2px 3px 0 rgba(0,0,0,.3);
-    white-space:nowrap;
+    box-shadow:0 0 60px rgba(255,200,0,.6),0 10px 40px rgba(0,0,0,.5);
+    transition:transform .35s cubic-bezier(.34,1.56,.64,1),opacity .3s;
+    opacity:0;text-shadow:2px 3px 0 rgba(0,0,0,.3);white-space:nowrap;
   }
-  #mensaje-figura.visible{
-    transform:translate(-50%,-50%) scale(1);
-    opacity:1;
-  }
-  @keyframes gradientShift{
-    0%{background-position:0% 50%}
-    50%{background-position:100% 50%}
-    100%{background-position:0% 50%}
-  }
+  #mensaje-figura.visible{transform:translate(-50%,-50%) scale(1);opacity:1}
+  @keyframes gradientShift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
 
-  /* Confeti */
-  .confeti{
-    position:fixed;
-    width:12px;height:12px;
-    border-radius:3px;
-    pointer-events:none;
-    z-index:400;
-    animation:caerConfeti 1.5s ease-in forwards;
-  }
-  @keyframes caerConfeti{
-    0%{opacity:1;transform:translateY(0) rotate(0deg) scale(1)}
-    100%{opacity:0;transform:translateY(400px) rotate(720deg) scale(0.3)}
-  }
+  .confeti{position:fixed;width:12px;height:12px;border-radius:3px;pointer-events:none;z-index:400;animation:caerConfeti 1.5s ease-in forwards}
+  @keyframes caerConfeti{0%{opacity:1;transform:translateY(0) rotate(0deg) scale(1)}100%{opacity:0;transform:translateY(400px) rotate(720deg) scale(0.3)}}
 
-  /* Animacion rebote figura */
-  @keyframes aparecer{
-    0%{transform:scale(0) rotate(-10deg)}
-    60%{transform:scale(1.25) rotate(5deg)}
-    80%{transform:scale(0.9) rotate(-3deg)}
-    100%{transform:scale(1) rotate(0deg)}
-  }
-  @keyframes flotar{
-    0%,100%{margin-top:0px}
-    50%{margin-top:-8px}
-  }
-  @keyframes brillar{
-    0%,100%{filter:drop-shadow(0 0 12px currentColor)}
-    50%{filter:drop-shadow(0 0 28px currentColor) brightness(1.2)}
-  }
+  @keyframes aparecer{0%{transform:scale(0) rotate(-10deg)}60%{transform:scale(1.25) rotate(5deg)}80%{transform:scale(0.9) rotate(-3deg)}100%{transform:scale(1) rotate(0deg)}}
+  @keyframes brillar{0%,100%{filter:drop-shadow(0 0 12px currentColor)}50%{filter:drop-shadow(0 0 28px currentColor) brightness(1.2)}}
 
-  /* Panel colores */
   .colores-panel{position:fixed;left:12px;top:50%;transform:translateY(-50%);z-index:100;display:flex;flex-direction:column;gap:8px;align-items:center;background:rgba(0,0,0,.65);padding:10px 8px;border-radius:20px;border:1px solid rgba(255,255,255,.1)}
   .color-btn{width:38px;height:38px;border-radius:50%;border:3px solid transparent;cursor:pointer;transition:transform .15s}
   .color-btn.activo{border-color:white;transform:scale(1.2)}
 
-  /* Panel modo */
   .modo-panel{position:fixed;right:12px;top:50%;transform:translateY(-50%);z-index:100;display:flex;flex-direction:column;gap:8px;align-items:center;background:rgba(0,0,0,.65);padding:10px 8px;border-radius:20px;border:1px solid rgba(255,255,255,.1)}
   .modo-btn{width:44px;height:44px;border-radius:50%;border:2px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.3rem;transition:all .2s}
   .modo-btn.activo{border-color:#ffd93d;background:rgba(255,217,61,.25);box-shadow:0 0 12px rgba(255,217,61,.5)}
 
-  /* Contador figuras */
   #contador{position:fixed;top:65px;right:12px;background:rgba(0,0,0,.7);color:white;padding:6px 14px;border-radius:20px;font-weight:900;font-size:.85rem;z-index:100;border:1px solid rgba(255,255,255,.15)}
 </style>
 </head>
@@ -174,18 +119,16 @@ const cursorPinza = document.getElementById('cursor-pinza');
 const contenedor  = document.getElementById('contenedor-figuras');
 
 let color = '#ef4444';
-let modo  = 'dibujar'; // 'dibujar' | 'mover' | 'borrarFigura'
+let modo  = 'dibujar';
 
-// Dibujo
 let posHistory = [];
 const SMOOTH   = 5;
 let dedoFrames = 0, noDedoFrames = 0;
 const UMBRAL   = 2;
 let dibujando  = false;
 let lastX = null, lastY = null;
-let trazoPuntos = []; // puntos del trazo actual
+let trazoPuntos = [];
 
-// Figuras flotantes
 let figuras = [];
 let figuraAgarrada = null;
 let offsetAgarre   = {x:0, y:0};
@@ -228,7 +171,6 @@ function limpiarTodo(){
   document.getElementById('num-figuras').textContent = '0';
 }
 function guardar(){
-  // Combinar video frame + figuras SVG + canvas en una imagen
   const tmpCanvas = document.createElement('canvas');
   tmpCanvas.width  = canvasDraw.width;
   tmpCanvas.height = canvasDraw.height;
@@ -257,11 +199,9 @@ function soloIndice(lm){
   return iUp && mDn && rDn && pDn;
 }
 function esPinza(lm){
-  // Índice y pulgar cerca = pinza
   const dx = lm[8].x - lm[4].x;
   const dy = lm[8].y - lm[4].y;
-  const dist = Math.sqrt(dx*dx + dy*dy);
-  return dist < 0.09;
+  return Math.sqrt(dx*dx + dy*dy) < 0.09;
 }
 
 // ===================== RECONOCIMIENTO =====================
@@ -296,32 +236,31 @@ function reconocerFigura(puntos){
   const diagonal   = Math.sqrt(W*W + H*H);
   const cerrado    = distCierre < diagonal * 0.5;
 
-  // ── Uniformidad de distancias al centro (clave para círculo) ──
+  // ── Uniformidad de distancias al centro ──
   const distancias = puntos.map(p=>Math.sqrt((p.x-cx)**2+(p.y-cy)**2));
   const distMedia  = distancias.reduce((a,b)=>a+b,0)/distancias.length;
   const distStd    = Math.sqrt(distancias.reduce((a,b)=>a+(b-distMedia)**2,0)/distancias.length);
-  const distCV     = distStd / distMedia; // 0=círculo perfecto, >0.3=angular
+  const distCV     = distStd / distMedia;
 
-  // ── Cambios de dirección suavizados ──
+  // ── Esquinas ──
   const esquinas = contarEsquinas(puntos);
 
   // ══════════════════════════════════════════
-  // CÍRCULO — debe ir PRIMERO, es la más fácil de confundir
-  // Criterio: trazo cerrado + distancias muy uniformes al centro
+  // CÍRCULO — umbral bajo (0.22) + pocas esquinas
+  // Así no se confunde con cuadrado ni estrella
   // ══════════════════════════════════════════
-  if(cerrado && distCV < 0.32){
+  if(cerrado && distCV < 0.22 && esquinas < 4){
     return 'circulo';
   }
 
   // ══════════════════════════════════════════
-  // TRIÁNGULO — cerrado, pocas esquinas, un vértice dominante
+  // TRIÁNGULO — cerrado, 2-4 esquinas, un vértice centrado
   // ══════════════════════════════════════════
-  if(cerrado && esquinas >= 2 && esquinas <= 4 && distCV >= 0.32){
+  if(cerrado && esquinas >= 2 && esquinas <= 4 && distCV >= 0.22){
     const topP = puntos.reduce((a,b)=>a.y<b.y?a:b);
     const botP = puntos.reduce((a,b)=>a.y>b.y?a:b);
     const izqP = puntos.reduce((a,b)=>a.x<b.x?a:b);
     const derP = puntos.reduce((a,b)=>a.x>b.x?a:b);
-    // Un vértice debe estar claramente en un extremo centrado
     const topOk = Math.abs(topP.x-cx) < W*0.4;
     const botOk = Math.abs(botP.x-cx) < W*0.4;
     const izqOk = Math.abs(izqP.y-cy) < H*0.4;
@@ -330,23 +269,23 @@ function reconocerFigura(puntos){
   }
 
   // ══════════════════════════════════════════
-  // CUADRADO — cerrado, ratio ~1, esquinas marcadas
+  // CUADRADO — cerrado, ratio ~1, esquinas marcadas, NO es círculo
   // ══════════════════════════════════════════
-  if(cerrado && esquinas >= 3 && esquinas <= 7 && ratio > 0.65 && ratio < 1.55 && distCV >= 0.32){
+  if(cerrado && esquinas >= 3 && esquinas <= 7 && ratio > 0.65 && ratio < 1.55 && distCV >= 0.22){
     return 'cuadrado';
   }
 
   // ══════════════════════════════════════════
   // RECTÁNGULO — cerrado, ratio muy diferente de 1
   // ══════════════════════════════════════════
-  if(cerrado && esquinas >= 3 && (ratio < 0.55 || ratio > 1.65) && distCV >= 0.32){
+  if(cerrado && esquinas >= 3 && (ratio < 0.55 || ratio > 1.65) && distCV >= 0.22){
     return 'rectangulo';
   }
 
   // ══════════════════════════════════════════
-  // DIAMANTE — cerrado, los 4 extremos centrados en los ejes
+  // DIAMANTE — los 4 extremos centrados en sus ejes
   // ══════════════════════════════════════════
-  if(cerrado && distCV >= 0.32){
+  if(cerrado && distCV >= 0.22){
     const topP = puntos.reduce((a,b)=>a.y<b.y?a:b);
     const botP = puntos.reduce((a,b)=>a.y>b.y?a:b);
     const izqP = puntos.reduce((a,b)=>a.x<b.x?a:b);
@@ -359,15 +298,14 @@ function reconocerFigura(puntos){
   }
 
   // ══════════════════════════════════════════
-  // ESTRELLA — solo si el trazo va para adentro y afuera claramente
-  // Muchas variaciones de distancia al centro
+  // ESTRELLA — al final, muchas variaciones + muchas esquinas
   // ══════════════════════════════════════════
   if(cerrado && distCV > 0.38 && esquinas >= 6){
     return 'estrella';
   }
 
   // ══════════════════════════════════════════
-  // CORAZÓN — parte de arriba tiene puntos a ambos lados del centro
+  // CORAZÓN — mitad superior tiene puntos a ambos lados
   // ══════════════════════════════════════════
   if(cerrado && ratio > 0.6 && ratio < 2.5){
     const sup = puntos.filter(p=>p.y < cy);
@@ -379,7 +317,7 @@ function reconocerFigura(puntos){
   }
 
   // ══════════════════════════════════════════
-  // LUNA — puntos concentrados más en un lado (forma de C)
+  // LUNA — puntos muy concentrados en un lado (forma de C)
   // ══════════════════════════════════════════
   if(cerrado){
     const izqN = puntos.filter(p=>p.x < cx).length;
@@ -389,14 +327,14 @@ function reconocerFigura(puntos){
   }
 
   // ══════════════════════════════════════════
-  // HEXÁGONO — 5-7 esquinas, ratio ~1
+  // HEXÁGONO — 5-8 esquinas, ratio ~1
   // ══════════════════════════════════════════
   if(cerrado && esquinas >= 5 && esquinas <= 8 && ratio > 0.5 && ratio < 1.8){
     return 'hexagono';
   }
 
   // ══════════════════════════════════════════
-  // FLECHA — trazo no cerrado, alargado
+  // FLECHA — trazo abierto, alargado
   // ══════════════════════════════════════════
   if(!cerrado && (ratio > 2.2 || ratio < 0.45) && esquinas >= 2){
     return 'flecha';
@@ -406,7 +344,6 @@ function reconocerFigura(puntos){
 }
 
 function contarEsquinas(puntos){
-  // Submuestrear a 30 puntos estables
   const N = 30;
   const step = Math.max(1, Math.floor(puntos.length/N));
   const sub = [];
@@ -424,7 +361,6 @@ function contarEsquinas(puntos){
     const ang=Math.acos(Math.max(-1,Math.min(1,dot)));
     if(ang > 0.7) cambios++;
   }
-  // Normalizar: agrupar cambios cercanos
   return Math.round(cambios / Math.max(1, w));
 }
 
@@ -433,13 +369,11 @@ const COLORES_VIVOS = ['#ff4757','#ff6b81','#ffa502','#eccc68','#2ed573','#1e90f
 
 function crearFiguraSVG(tipo, cx, cy, w, h, col){
   const c = col || COLORES_VIVOS[Math.floor(Math.random()*COLORES_VIVOS.length)];
-  // Tamaño proporcional al trazo, con mínimo 80 y máximo 220px
   const size = Math.min(Math.max(Math.max(w,h), 80), 220);
   const s2 = size/2;
   let svgInner = '';
 
   const gradId = 'g'+Date.now();
-
   const grad = `<defs>
     <radialGradient id="${gradId}" cx="40%" cy="35%" r="65%">
       <stop offset="0%" stop-color="white" stop-opacity="0.5"/>
@@ -450,7 +384,6 @@ function crearFiguraSVG(tipo, cx, cy, w, h, col){
       <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>`;
-
   const fillStroke = `fill="url(#${gradId})" stroke="${c}" stroke-width="4" filter="url(#glow${gradId})"`;
 
   switch(tipo){
@@ -512,15 +445,7 @@ function crearElementoFigura(tipo, cx, cy, w, h, c, svgStr){
   div.dataset.tipo = tipo;
   div.dataset.color = c;
 
-  const obj = {
-    el: div,
-    x: cx, y: cy,
-    w, h,
-    color: c,
-    tipo,
-    flotando: true,
-    phase: Math.random()*Math.PI*2
-  };
+  const obj = { el:div, x:cx, y:cy, w, h, color:c, tipo, flotando:true, phase:Math.random()*Math.PI*2 };
   figuras.push(obj);
   contenedor.appendChild(div);
   document.getElementById('num-figuras').textContent = figuras.length;
@@ -530,8 +455,8 @@ function crearElementoFigura(tipo, cx, cy, w, h, c, svgStr){
 function puntosEstrella(cx,cy,R,r,n){
   let pts=[];
   for(let i=0;i<n*2;i++){
-    const ang = (i*Math.PI/n) - Math.PI/2;
-    const rad = i%2===0 ? R : r;
+    const ang=(i*Math.PI/n)-Math.PI/2;
+    const rad=i%2===0?R:r;
     pts.push(`${cx+rad*Math.cos(ang)},${cy+rad*Math.sin(ang)}`);
   }
   return pts.join(' ');
@@ -539,7 +464,7 @@ function puntosEstrella(cx,cy,R,r,n){
 function puntosPoligono(cx,cy,r,n){
   let pts=[];
   for(let i=0;i<n;i++){
-    const ang = (i*2*Math.PI/n) - Math.PI/2;
+    const ang=(i*2*Math.PI/n)-Math.PI/2;
     pts.push(`${cx+r*Math.cos(ang)},${cy+r*Math.sin(ang)}`);
   }
   return pts.join(' ');
@@ -547,18 +472,18 @@ function puntosPoligono(cx,cy,r,n){
 
 // ===================== CONFETI =====================
 function lanzarConfeti(cx, cy){
-  const cols = ['#ff4757','#ffa502','#2ed573','#1e90ff','#a29bfe','#fd79a8','#ffd32a','#fff'];
+  const cols=['#ff4757','#ffa502','#2ed573','#1e90ff','#a29bfe','#fd79a8','#ffd32a','#fff'];
   for(let i=0;i<40;i++){
-    const el = document.createElement('div');
-    el.className = 'confeti';
-    el.style.background = cols[Math.floor(Math.random()*cols.length)];
-    el.style.left = (cx + (Math.random()-0.5)*200) + 'px';
-    el.style.top  = (cy + (Math.random()-0.5)*100) + 'px';
-    el.style.animationDelay = (Math.random()*0.4)+'s';
-    el.style.animationDuration = (1+Math.random()*0.8)+'s';
-    el.style.borderRadius = Math.random()>0.5 ? '50%' : '3px';
+    const el=document.createElement('div');
+    el.className='confeti';
+    el.style.background=cols[Math.floor(Math.random()*cols.length)];
+    el.style.left=(cx+(Math.random()-0.5)*200)+'px';
+    el.style.top=(cy+(Math.random()-0.5)*100)+'px';
+    el.style.animationDelay=(Math.random()*0.4)+'s';
+    el.style.animationDuration=(1+Math.random()*0.8)+'s';
+    el.style.borderRadius=Math.random()>0.5?'50%':'3px';
     document.body.appendChild(el);
-    setTimeout(()=>el.remove(), 2500);
+    setTimeout(()=>el.remove(),2500);
   }
 }
 
@@ -568,10 +493,10 @@ function mostrarMensaje(tipo){
   const info = FIGURAS_INFO[tipo];
   if(!info) return;
   const el = document.getElementById('mensaje-figura');
-  el.textContent = info.emoji + ' ' + info.nombre + ' ' + info.emoji;
+  el.textContent = info.emoji+' '+info.nombre+' '+info.emoji;
   el.classList.add('visible');
   if(msgTimer) clearTimeout(msgTimer);
-  msgTimer = setTimeout(()=>el.classList.remove('visible'), 2200);
+  msgTimer = setTimeout(()=>el.classList.remove('visible'),2200);
 }
 
 // ===================== LOOP FLOTACION =====================
@@ -580,8 +505,8 @@ function animarFiguras(){
   t += 0.02;
   figuras.forEach(f=>{
     if(!f.agarrada){
-      const dy = Math.sin(t + f.phase)*5;
-      f.el.style.top  = (f.y - f.h/2 + dy)+'px';
+      const dy = Math.sin(t+f.phase)*5;
+      f.el.style.top = (f.y-f.h/2+dy)+'px';
     }
   });
   requestAnimationFrame(animarFiguras);
@@ -590,7 +515,7 @@ animarFiguras();
 
 // ===================== MEDIAPIPE =====================
 const hands = new Hands({
-  locateFile: fn => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${fn}`
+  locateFile: fn=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${fn}`
 });
 hands.setOptions({
   maxNumHands:1,
@@ -599,23 +524,21 @@ hands.setOptions({
   minTrackingConfidence:0.6
 });
 
-hands.onResults(res => {
+hands.onResults(res=>{
   if(res.multiHandLandmarks && res.multiHandLandmarks.length > 0){
     const lm = res.multiHandLandmarks[0];
     const raw = lm[8];
-
     const rawX = (1-raw.x)*canvasDraw.width;
     const rawY = Math.min(raw.y*canvasDraw.height*1.1, canvasDraw.height-10);
     const {x,y} = smoothPos(rawX,rawY);
-
     const pinzaAhora = esPinza(lm);
 
     // ---- MODO DIBUJAR ----
     if(modo === 'dibujar'){
-      cursor.style.display = 'block';
-      cursorPinza.style.display = 'none';
-      cursor.style.left = x+'px';
-      cursor.style.top  = y+'px';
+      cursor.style.display='block';
+      cursorPinza.style.display='none';
+      cursor.style.left=x+'px';
+      cursor.style.top=y+'px';
 
       if(soloIndice(lm)){
         dedoFrames++; noDedoFrames=0;
@@ -624,17 +547,17 @@ hands.onResults(res => {
         noDedoFrames++; dedoFrames=0;
         if(noDedoFrames>=UMBRAL){
           if(dibujando && trazoPuntos.length > 6){
-            const bx = trazoPuntos.map(p=>p.x), by = trazoPuntos.map(p=>p.y);
-            const cx2 = (Math.min(...bx)+Math.max(...bx))/2;
-            const cy2 = (Math.min(...by)+Math.max(...by))/2;
-            const w2  = Math.max(...bx)-Math.min(...bx);
-            const h2  = Math.max(...by)-Math.min(...by);
-            const tipo = reconocerFigura(trazoPuntos);
+            const bx=trazoPuntos.map(p=>p.x), by=trazoPuntos.map(p=>p.y);
+            const cx2=(Math.min(...bx)+Math.max(...bx))/2;
+            const cy2=(Math.min(...by)+Math.max(...by))/2;
+            const w2=Math.max(...bx)-Math.min(...bx);
+            const h2=Math.max(...by)-Math.min(...by);
+            const tipo=reconocerFigura(trazoPuntos);
             ctxT.clearRect(0,0,canvasTrace.width,canvasTrace.height);
             ctxD.clearRect(0,0,canvasDraw.width,canvasDraw.height);
             if(tipo){
-              crearFiguraSVG(tipo, cx2, cy2, w2, h2, color);
-              lanzarConfeti(cx2, cy2);
+              crearFiguraSVG(tipo,cx2,cy2,w2,h2,color);
+              lanzarConfeti(cx2,cy2);
               mostrarMensaje(tipo);
             }
           }
@@ -643,101 +566,97 @@ hands.onResults(res => {
         }
       }
 
-      const sz = 18;
-      cursor.style.width  = sz+'px';
-      cursor.style.height = sz+'px';
-      cursor.style.background = dibujando ? color : 'transparent';
-      cursor.style.border = `3px solid ${dibujando?'white':'rgba(255,255,255,0.4)'}`;
-
+      const sz=18;
+      cursor.style.width=sz+'px';
+      cursor.style.height=sz+'px';
+      cursor.style.background=dibujando?color:'transparent';
+      cursor.style.border=`3px solid ${dibujando?'white':'rgba(255,255,255,0.4)'}`;
       document.getElementById('instruccion').textContent =
-        dibujando ? '✏️ ¡Dibujando! Levanta el dedo al terminar' : '☝️ Levanta solo el índice para dibujar';
+        dibujando?'✏️ ¡Dibujando! Levanta el dedo al terminar':'☝️ Levanta solo el índice para dibujar';
 
       if(dibujando){
         trazoPuntos.push({x,y});
         if(lastX!==null){
-          // Dibujar en canvas trace (temporal)
           ctxT.beginPath();
           ctxT.moveTo(lastX,lastY);
           ctxT.lineTo(x,y);
-          ctxT.lineWidth = 5;
-          ctxT.lineCap  = 'round';
-          ctxT.lineJoin = 'round';
-          ctxT.strokeStyle = color;
-          ctxT.globalAlpha = 0.85;
+          ctxT.lineWidth=5;
+          ctxT.lineCap='round';
+          ctxT.lineJoin='round';
+          ctxT.strokeStyle=color;
+          ctxT.globalAlpha=0.85;
           ctxT.stroke();
-          ctxT.globalAlpha = 1;
+          ctxT.globalAlpha=1;
         }
         lastX=x; lastY=y;
       }
     }
 
     // ---- MODO MOVER ----
-    else if(modo === 'mover'){
-      cursor.style.display = 'none';
-      cursorPinza.style.display = 'block';
-      cursorPinza.style.left = x+'px';
-      cursorPinza.style.top  = y+'px';
+    else if(modo==='mover'){
+      cursor.style.display='none';
+      cursorPinza.style.display='block';
+      cursorPinza.style.left=x+'px';
+      cursorPinza.style.top=y+'px';
 
       if(pinzaAhora){
-        pinzaFrames++; 
-        if(pinzaFrames >= UMBRAL_PINZA && !pinzaActiva){
-          pinzaActiva = true;
-          // Buscar figura bajo la pinza
-          figuraAgarrada = null;
+        pinzaFrames++;
+        if(pinzaFrames>=UMBRAL_PINZA && !pinzaActiva){
+          pinzaActiva=true;
+          figuraAgarrada=null;
           for(let i=figuras.length-1;i>=0;i--){
             const f=figuras[i];
             if(x>=f.x-f.w/2 && x<=f.x+f.w/2 && y>=f.y-f.h/2 && y<=f.y+f.h/2){
               figuraAgarrada=f;
               f.agarrada=true;
               f.el.classList.add('agarrada');
-              offsetAgarre={x:x-f.x, y:y-f.y};
+              offsetAgarre={x:x-f.x,y:y-f.y};
               break;
             }
           }
         }
         if(pinzaActiva && figuraAgarrada){
-          figuraAgarrada.x = x - offsetAgarre.x;
-          figuraAgarrada.y = y - offsetAgarre.y;
-          figuraAgarrada.el.style.left = (figuraAgarrada.x - figuraAgarrada.w/2)+'px';
-          figuraAgarrada.el.style.top  = (figuraAgarrada.y - figuraAgarrada.h/2)+'px';
+          figuraAgarrada.x=x-offsetAgarre.x;
+          figuraAgarrada.y=y-offsetAgarre.y;
+          figuraAgarrada.el.style.left=(figuraAgarrada.x-figuraAgarrada.w/2)+'px';
+          figuraAgarrada.el.style.top=(figuraAgarrada.y-figuraAgarrada.h/2)+'px';
         }
       } else {
-        pinzaFrames = 0;
+        pinzaFrames=0;
         if(figuraAgarrada){
           figuraAgarrada.agarrada=false;
           figuraAgarrada.el.classList.remove('agarrada');
-          figuraAgarrada.phase = Math.random()*Math.PI*2;
+          figuraAgarrada.phase=Math.random()*Math.PI*2;
         }
         figuraAgarrada=null;
         pinzaActiva=false;
       }
 
       document.getElementById('instruccion').textContent =
-        pinzaActiva && figuraAgarrada ? '🤌 ¡Moviendo figura!' : '🤌 Junta índice y pulgar sobre una figura';
+        pinzaActiva && figuraAgarrada?'🤌 ¡Moviendo figura!':'🤌 Junta índice y pulgar sobre una figura';
     }
 
     // ---- MODO BORRAR FIGURA ----
-    else if(modo === 'borrarFigura'){
-      cursor.style.display = 'block';
-      cursorPinza.style.display = 'none';
-      cursor.style.left = x+'px';
-      cursor.style.top  = y+'px';
-      cursor.style.width  = '40px';
-      cursor.style.height = '40px';
-      cursor.style.background = 'rgba(239,68,68,0.45)';
-      cursor.style.border = '3px solid #ef4444';
+    else if(modo==='borrarFigura'){
+      cursor.style.display='block';
+      cursorPinza.style.display='none';
+      cursor.style.left=x+'px';
+      cursor.style.top=y+'px';
+      cursor.style.width='40px';
+      cursor.style.height='40px';
+      cursor.style.background='rgba(239,68,68,0.45)';
+      cursor.style.border='3px solid #ef4444';
 
       if(soloIndice(lm)){
         dedoFrames++; noDedoFrames=0;
-        // Solo actuar en el frame exacto que supera el umbral
-        if(dedoFrames === UMBRAL){
+        if(dedoFrames===UMBRAL){
           for(let i=figuras.length-1;i>=0;i--){
             const f=figuras[i];
-            const elRect = f.el.getBoundingClientRect();
-            const ex = elRect.left + elRect.width/2;
-            const ey = elRect.top  + elRect.height/2;
-            const dist = Math.sqrt((x-ex)**2+(y-ey)**2);
-            if(dist < Math.max(f.w,f.h)*0.6){
+            const elRect=f.el.getBoundingClientRect();
+            const ex=elRect.left+elRect.width/2;
+            const ey=elRect.top+elRect.height/2;
+            const dist=Math.sqrt((x-ex)**2+(y-ey)**2);
+            if(dist<Math.max(f.w,f.h)*0.6){
               f.el.style.transition='transform .35s ease, opacity .35s ease';
               f.el.style.transform='scale(0) rotate(30deg)';
               f.el.style.opacity='0';
@@ -752,19 +671,18 @@ hands.onResults(res => {
         noDedoFrames++; dedoFrames=0;
       }
 
-      document.getElementById('instruccion').textContent = '☝️ Apunta a una figura para borrarla';
+      document.getElementById('instruccion').textContent='☝️ Apunta a una figura para borrarla';
     }
 
   } else {
-    // Sin mano
-    cursor.style.display = 'none';
-    cursorPinza.style.display = 'none';
+    cursor.style.display='none';
+    cursorPinza.style.display='none';
     dedoFrames=0; noDedoFrames=0;
     pinzaFrames=0; pinzaActiva=false;
     if(figuraAgarrada){ figuraAgarrada.agarrada=false; figuraAgarrada.el.classList.remove('agarrada'); figuraAgarrada=null; }
     dibujando=false; lastX=null; lastY=null; posHistory=[]; trazoPuntos=[];
     ctxT.clearRect(0,0,canvasTrace.width,canvasTrace.height);
-    document.getElementById('instruccion').textContent = '✋ Muestra tu mano frente a la cámara';
+    document.getElementById('instruccion').textContent='✋ Muestra tu mano frente a la cámara';
   }
 });
 
@@ -773,7 +691,7 @@ const camera = new Camera(video,{
   width:1280, height:720
 });
 camera.start().then(()=>{
-  document.getElementById('instruccion').textContent = '✋ Muestra tu mano frente a la cámara';
+  document.getElementById('instruccion').textContent='✋ Muestra tu mano frente a la cámara';
 });
 </script>
 </body>
