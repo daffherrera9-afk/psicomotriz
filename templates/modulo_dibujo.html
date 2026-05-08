@@ -86,11 +86,21 @@ let posHistory = [], dedoFrames = 0, noDedoFrames = 0;
 const SMOOTH = 5, UMBRAL = 2;
 let dibujando = false, lastX = null, lastY = null;
 
+// ── Trazos guardados para poder moverlos ──
+let trazos = [];          // [{pts, color, grosor, dx, dy}]
+let trazoActual = [];     // puntos del trazo en curso
+
+// ── Mover con pinza ──
+let pinzaFrames = 0, pinzaActiva = false;
+const UMBRAL_PINZA = 4;
+let trazoAgarrado = null, offsetAgarre = {x:0, y:0};
+
 canvasDraw.width  = window.innerWidth;
 canvasDraw.height = window.innerHeight;
 window.addEventListener('resize', () => {
   canvasDraw.width  = window.innerWidth;
   canvasDraw.height = window.innerHeight;
+  redibujarTodo();
 });
 
 function setColor(c, btn){
@@ -107,6 +117,8 @@ function setGrosor(g, btn){
 }
 
 function limpiarTodo(){
+  trazos = [];
+  trazoActual = [];
   ctx.clearRect(0, 0, canvasDraw.width, canvasDraw.height);
 }
 
@@ -131,6 +143,45 @@ function soloIndice(lm){
          lm[20].y > lm[18].y - 0.02;
 }
 
+function esPinza(lm){
+  const dx = lm[8].x - lm[4].x, dy = lm[8].y - lm[4].y;
+  return Math.sqrt(dx*dx + dy*dy) < 0.09;
+}
+
+// Dibuja un trazo en el canvas dado su offset dx,dy
+function dibujarTrazo(t){
+  if(t.pts.length < 2) return;
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.strokeStyle = t.color;
+  ctx.lineWidth   = t.grosor;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+  ctx.globalAlpha = 1;
+  ctx.beginPath();
+  ctx.moveTo(t.pts[0].x + t.dx, t.pts[0].y + t.dy);
+  for(let i = 1; i < t.pts.length; i++)
+    ctx.lineTo(t.pts[i].x + t.dx, t.pts[i].y + t.dy);
+  ctx.stroke();
+}
+
+function redibujarTodo(){
+  ctx.clearRect(0, 0, canvasDraw.width, canvasDraw.height);
+  trazos.forEach(t => dibujarTrazo(t));
+}
+
+// Encontrar el trazo más cercano al punto (x,y)
+function encontrarTrazo(x, y){
+  const MARGEN = 30;
+  for(let i = trazos.length - 1; i >= 0; i--){
+    const t = trazos[i];
+    for(const p of t.pts){
+      const px = p.x + t.dx, py = p.y + t.dy;
+      if(Math.hypot(x - px, y - py) < MARGEN + t.grosor) return t;
+    }
+  }
+  return null;
+}
+
 const hands = new Hands({locateFile: fn => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${fn}`});
 hands.setOptions({maxNumHands:1, modelComplexity:1, minDetectionConfidence:0.4, minTrackingConfidence:0.6});
 
@@ -142,42 +193,86 @@ hands.onResults(res => {
       Math.min(lm[8].y * canvasDraw.height * 1.1, canvasDraw.height - 10)
     );
 
-    const esBorrador = grosor === 0;
-    const tamCursor  = esBorrador ? 44 : Math.max(grosor * 2, 16);
+    const pinzaAhora = esPinza(lm);
+    const indiceAhora = soloIndice(lm);
+    const esBorrador  = grosor === 0;
+
+    // ── MODO PINZA: mover trazo ──
+    if(pinzaAhora && !indiceAhora){
+      // Soltar trazo si estaba dibujando
+      if(dibujando && trazoActual.length > 1){
+        trazos.push({pts: trazoActual, color, grosor, dx:0, dy:0});
+        trazoActual = [];
+        redibujarTodo();
+      }
+      dibujando = false; lastX = lastY = null;
+
+      pinzaFrames++;
+      if(pinzaFrames >= UMBRAL_PINZA && !pinzaActiva){
+        pinzaActiva = true;
+        trazoAgarrado = encontrarTrazo(x, y);
+        if(trazoAgarrado) offsetAgarre = {x: x - trazoAgarrado.dx, y: y - trazoAgarrado.dy};
+      }
+      if(pinzaActiva && trazoAgarrado){
+        trazoAgarrado.dx = x - offsetAgarre.x;
+        trazoAgarrado.dy = y - offsetAgarre.y;
+        redibujarTodo();
+      }
+
+      cursor.style.cssText = `display:block;left:${x}px;top:${y}px;width:30px;height:30px;background:transparent;border:3px solid #ffd93d;border-radius:50%;pointer-events:none;z-index:200;transform:translate(-50%,-50%)`;
+      document.getElementById('instruccion').textContent = trazoAgarrado ? '🤌 ¡Moviendo!' : '🤌 Junta dedos sobre un dibujo';
+      return;
+    }
+
+    // Soltar pinza
+    if(!pinzaAhora){
+      pinzaFrames = 0;
+      if(pinzaActiva){ pinzaActiva = false; trazoAgarrado = null; }
+    }
+
+    // ── MODO DIBUJAR: solo índice ──
+    const esBorradorMode = esBorrador;
+    const tamCursor = esBorradorMode ? 44 : Math.max(grosor * 2, 16);
     cursor.style.cssText = `
       display:block;left:${x}px;top:${y}px;
       width:${tamCursor}px;height:${tamCursor}px;
-      background:${dibujando && !esBorrador ? color : 'transparent'};
+      background:${dibujando && !esBorradorMode ? color : 'transparent'};
       border:3px solid ${dibujando ? 'white' : 'rgba(255,255,255,0.4)'};
       border-radius:50%;pointer-events:none;z-index:200;
       transform:translate(-50%,-50%)
     `;
 
-    if(soloIndice(lm)){
+    if(indiceAhora){
       dedoFrames++; noDedoFrames = 0;
       if(dedoFrames >= UMBRAL) dibujando = true;
     } else {
       noDedoFrames++; dedoFrames = 0;
       if(noDedoFrames >= UMBRAL){
+        // Guardar trazo al levantar el dedo
+        if(dibujando && trazoActual.length > 1 && !esBorradorMode){
+          trazos.push({pts: trazoActual, color, grosor, dx:0, dy:0});
+        }
+        trazoActual = [];
         dibujando = false;
         lastX = lastY = null;
       }
     }
 
     document.getElementById('instruccion').textContent =
-      dibujando ? (esBorrador ? '🧹 Borrando...' : '✏️ Dibujando...') : '☝️ Levanta el índice para dibujar';
+      dibujando ? (esBorradorMode ? '🧹 Borrando...' : '✏️ Dibujando...') : '☝️ Levanta el índice para dibujar';
 
     if(dibujando && lastX !== null){
       ctx.beginPath();
       ctx.moveTo(lastX, lastY);
       ctx.lineTo(x, y);
-      if(esBorrador){
+      if(esBorradorMode){
         ctx.globalCompositeOperation = 'destination-out';
         ctx.lineWidth = 44;
       } else {
         ctx.globalCompositeOperation = 'source-over';
         ctx.strokeStyle = color;
         ctx.lineWidth = grosor;
+        trazoActual.push({x, y});
       }
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
@@ -190,7 +285,12 @@ hands.onResults(res => {
 
   } else {
     cursor.style.display = 'none';
-    dedoFrames = noDedoFrames = 0;
+    dedoFrames = noDedoFrames = pinzaFrames = 0;
+    pinzaActiva = false; trazoAgarrado = null;
+    if(dibujando && trazoActual.length > 1 && grosor !== 0){
+      trazos.push({pts: trazoActual, color, grosor, dx:0, dy:0});
+    }
+    trazoActual = [];
     dibujando = false; lastX = lastY = null; posHistory = [];
     document.getElementById('instruccion').textContent = '✋ Muestra tu mano frente a la cámara';
   }
